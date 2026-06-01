@@ -14,6 +14,8 @@ const PUBLIC_PATHS = [
   "/manifest.json",
   "/robots.txt",
   "/sitemap.xml",
+  "/icon",
+  "/apple-icon",
   "/icons",
   "/favicon",
 ];
@@ -46,6 +48,6 @@ export async function proxy(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!api/auth|_next/static|_next/image|favicon.ico|icons|manifest.json|robots.txt|sitemap.xml|receipt).*)",
+    "/((?!api/auth|_next/static|_next/image|favicon.ico|icon|apple-icon|icons|manifest.json|robots.txt|sitemap.xml|receipt).*)",
   ],
 };

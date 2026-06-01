@@ -32,12 +32,10 @@ declare module "next-auth/jwt" {
     permissions: Permission[];
     avatar?: string;
     isActive?: boolean;
-    lastChecked?: number;
     remember?: boolean;
   }
 }
 
-const ROLE_RECHECK_MS = 5 * 60 * 1000;
 const SHORT_SESSION_SEC = 24 * 60 * 60;
 const LONG_SESSION_SEC = 30 * 24 * 60 * 60;
 
@@ -117,65 +115,28 @@ export const authOptions: NextAuthOptions = {
         token.permissions = user.permissions;
         token.avatar = user.avatar;
         token.isActive = true;
-        token.lastChecked = Date.now();
         token.remember = user.remember ?? false;
         if (!user.remember) {
           const now = Math.floor(Date.now() / 1000);
           token.exp = now + SHORT_SESSION_SEC;
         }
-        return token;
-      }
-
-      const now = Date.now();
-      const lastChecked = token.lastChecked ?? 0;
-      const stale = now - lastChecked > ROLE_RECHECK_MS;
-
-      if (stale && token.id) {
-        try {
-          await connectDB();
-          const fresh = await User.findById(token.id).select("role permissions isActive name avatar").lean();
-          if (!fresh || !fresh.isActive) {
-            return { ...token, isActive: false };
-          }
-          token.role = fresh.role as Role;
-          token.permissions =
-            fresh.permissions && fresh.permissions.length > 0
-              ? (fresh.permissions as Permission[])
-              : ROLE_PERMISSIONS[fresh.role as Role];
-          token.name = fresh.name;
-          token.avatar = fresh.avatar;
-          token.isActive = true;
-          token.lastChecked = now;
-        } catch {
-          token.lastChecked = now;
-        }
       }
       return token;
     },
     async session({ session, token }) {
-      if (token?.isActive === false) {
+      if (!token?.id) return null as unknown as typeof session;
+
+      if (token.isActive === false) {
         return null as unknown as typeof session;
       }
-      if (token && session.user) {
-        session.user.id = token.id;
-        session.user.role = token.role;
-        session.user.permissions = token.permissions;
-        session.user.avatar = token.avatar;
-        session.user.name = token.name as string;
-        session.user.email = token.email as string;
-      }
+
+      session.user.id = token.id;
+      session.user.role = token.role;
+      session.user.permissions = token.permissions;
+      session.user.avatar = token.avatar;
+      session.user.name = (token.name as string) ?? session.user.name;
+      session.user.email = (token.email as string) ?? session.user.email;
       return session;
-    },
-  },
-  cookies: {
-    sessionToken: {
-      name: `__Secure-next-auth.session-token`,
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        secure: process.env.NODE_ENV === "production",
-      },
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
