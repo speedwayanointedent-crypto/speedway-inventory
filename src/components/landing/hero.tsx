@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Sparkles, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { HeroBackground } from "@/components/landing/hero-background";
 import { APP_CONFIG } from "@/lib/constants";
 
 const PILL_FEATURES = [
@@ -13,6 +14,7 @@ const PILL_FEATURES = [
 export function Hero() {
   return (
     <section className="relative isolate overflow-hidden pt-32 pb-24 sm:pt-40 sm:pb-32">
+      <HeroBackground />
       <div className="relative mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
         <Badge
           variant="secondary"
