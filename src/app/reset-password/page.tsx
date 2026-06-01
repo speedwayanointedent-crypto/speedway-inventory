@@ -9,6 +9,8 @@ import { getCurrentUser } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Reset password" };
 
+export const dynamic = "force-dynamic";
+
 export default async function ResetPasswordPage() {
   const user = await getCurrentUser();
   if (user) redirect("/dashboard");

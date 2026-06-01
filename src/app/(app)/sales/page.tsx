@@ -116,7 +116,7 @@ export default async function SalesPage({
                         </Link>
                       </Button>
                       <Button asChild variant="ghost" size="icon" className="h-7 w-7">
-                        <Link href={`/receipt/${s.publicId}`} target="_blank">
+                        <Link href={`/receipt/${s.publicId}`} target="_blank" rel="noopener noreferrer">
                           <Printer className="h-3 w-3" />
                         </Link>
                       </Button>

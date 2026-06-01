@@ -12,6 +12,8 @@ export const metadata: Metadata = {
   description: "Sign up to access the SpeedWay Anointed Enterprise dashboard.",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function SignupPage() {
   const user = await getCurrentUser();
   if (user) redirect("/dashboard");

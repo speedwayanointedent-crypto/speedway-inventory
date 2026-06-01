@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 import { connectDB } from "@/lib/db";
 import { User, Settings, Category } from "@/models";
 import { requireRole, requireAuth } from "@/lib/session";
-import { userSchema, settingsSchema, type UserInput, type SettingsInput } from "@/lib/validations";
+import { userSchema, userUpdateSchema, settingsUpdateSchema, type UserInput, type SettingsInput } from "@/lib/validations";
 import { ROLES, ROLE_PERMISSIONS } from "@/lib/constants";
 import { logActivity } from "@/lib/activity";
 import { sendEmail, emailTemplates } from "@/lib/mail";
@@ -35,7 +35,7 @@ export async function createUser(input: UserInput) {
     to: data.email,
     toName: data.name,
     subject: "Welcome to SpeedWay Anointed Enterprise",
-    html: emailTemplates.welcome(data.name, data.email, data.password),
+    html: emailTemplates.welcome(data.name, data.email, undefined),
   });
 
   await logActivity(admin, {
@@ -50,7 +50,7 @@ export async function createUser(input: UserInput) {
 
 export async function updateUser(id: string, input: Partial<UserInput>) {
   const admin = await requireRole(ROLES.ADMIN);
-  const data = userSchema.partial().parse(input);
+  const data = userUpdateSchema.parse(input);
   await connectDB();
   const update: Record<string, unknown> = { ...data };
   if (data.password) update.password = await bcrypt.hash(data.password, 12);
@@ -99,7 +99,7 @@ export async function getSettings() {
 
 export async function updateSettings(input: SettingsInput) {
   const admin = await requireRole(ROLES.ADMIN);
-  const data = settingsSchema.parse(input);
+  const data = settingsUpdateSchema.parse(input);
   await connectDB();
   await Settings.findOneAndUpdate({}, data, { upsert: true });
   await logActivity(admin, {

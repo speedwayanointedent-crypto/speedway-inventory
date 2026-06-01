@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { connectDB } from "@/lib/db";
 import { Customer, Sale } from "@/models";
 import { requirePermission } from "@/lib/session";
-import { customerSchema, type CustomerInput } from "@/lib/validations";
+import { customerSchema, customerUpdateSchema, type CustomerInput } from "@/lib/validations";
 import { PERMISSIONS } from "@/lib/constants";
 import { logActivity } from "@/lib/activity";
 import { safeJSON } from "@/lib/utils";
@@ -25,7 +25,7 @@ export async function createCustomer(input: CustomerInput) {
 
 export async function updateCustomer(id: string, input: Partial<CustomerInput>) {
   const user = await requirePermission(PERMISSIONS.MANAGE_CUSTOMERS);
-  const data = customerSchema.partial().parse(input);
+  const data = customerUpdateSchema.parse(input);
   await connectDB();
   await Customer.findByIdAndUpdate(id, data);
   await logActivity(user, {

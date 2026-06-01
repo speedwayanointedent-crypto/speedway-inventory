@@ -16,7 +16,7 @@ export default async function CustomerDetailPage({
 }) {
   const { id } = await params;
   const result = await getCustomer(id);
-  if (!result) notFound();
+  if (!result || !result.customer) notFound();
   const c = result.customer as {
     _id: string;
     name: string;

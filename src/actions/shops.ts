@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { connectDB } from "@/lib/db";
 import { Shop } from "@/models";
 import { requirePermission } from "@/lib/session";
-import { shopSchema, type ShopInput } from "@/lib/validations";
+import { shopSchema, shopUpdateSchema, type ShopInput } from "@/lib/validations";
 import { PERMISSIONS } from "@/lib/constants";
 import { logActivity } from "@/lib/activity";
 import { safeJSON } from "@/lib/utils";
@@ -51,7 +51,7 @@ export async function createShop(input: ShopInput) {
 
 export async function updateShop(id: string, input: Partial<ShopInput>) {
   const user = await requirePermission(PERMISSIONS.MANAGE_SETTINGS);
-  const data = shopSchema.partial().parse(input);
+  const data = shopUpdateSchema.parse(input);
   await connectDB();
 
   if (data.code) {

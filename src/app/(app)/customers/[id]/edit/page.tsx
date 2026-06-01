@@ -10,7 +10,7 @@ export default async function EditCustomerPage({
 }) {
   const { id } = await params;
   const result = await getCustomer(id);
-  if (!result) notFound();
+  if (!result || !result.customer) notFound();
   const customer = result.customer as {
     _id?: string;
     name: string;

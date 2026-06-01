@@ -38,7 +38,7 @@ export default async function SaleDetailPage({
         </div>
         <div className="flex gap-2">
           <Button asChild variant="outline">
-            <Link href={`/receipt/${sale.publicId}`} target="_blank">
+            <Link href={`/receipt/${sale.publicId}`} target="_blank" rel="noopener noreferrer">
               <Printer className="h-4 w-4" /> Receipt
             </Link>
           </Button>

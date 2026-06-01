@@ -52,9 +52,8 @@ export const metadata: Metadata = {
     title: APP_CONFIG.shortName,
   },
   icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
-    apple: "/icons/icon-192x192.png",
+    icon: [{ url: "/icon", type: "image/png" }],
+    apple: [{ url: "/apple-icon", type: "image/png" }],
   },
 };
 

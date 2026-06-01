@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { connectDB } from "@/lib/db";
 import { Product, Category, InventoryTransaction } from "@/models";
 import { requireAuth, requirePermission } from "@/lib/session";
-import { productSchema, categorySchema, type ProductInput, type CategoryInput } from "@/lib/validations";
+import { productSchema, productUpdateSchema, categorySchema, type ProductInput, type CategoryInput } from "@/lib/validations";
 import { PERMISSIONS } from "@/lib/constants";
 import { logActivity } from "@/lib/activity";
 import { createNotification } from "@/lib/notifications";
@@ -57,7 +57,7 @@ export async function updateProduct(id: string, input: Partial<ProductInput>) {
   if (!existing) return { success: false, error: "Product not found" };
 
   const oldQty = existing.quantity;
-  const data = productSchema.partial().parse(input);
+  const data = productUpdateSchema.parse(input);
   const updated = await Product.findByIdAndUpdate(id, data, { new: true });
 
   if (data.quantity !== undefined && data.quantity !== oldQty) {

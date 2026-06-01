@@ -42,6 +42,7 @@ const UserSchema = new Schema<IUser>(
 );
 
 UserSchema.index({ email: 1, isActive: 1 });
+UserSchema.index({ resetToken: 1 });
 
 export const User: Model<IUser> =
   mongoose.models.User || mongoose.model<IUser>("User", UserSchema);

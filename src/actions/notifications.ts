@@ -23,10 +23,19 @@ export async function getNotifications(limit = 30) {
 }
 
 export async function markNotificationRead(id: string) {
-  await requireAuth();
+  const user = await requireAuth();
   await connectDB();
-  await Notification.findByIdAndUpdate(id, { isRead: true });
+  const result = await Notification.findOneAndUpdate(
+    {
+      _id: id,
+      $or: [{ user: user.id }, { user: { $exists: false } }, { user: null }],
+    },
+    { isRead: true }
+  );
   revalidatePath("/notifications");
+  if (!result) {
+    return { success: false, error: "Notification not found" };
+  }
   return { success: true };
 }
 

@@ -31,6 +31,11 @@ export const userSchema = z.object({
   permissions: z.array(z.string()).optional(),
 });
 
+export const userUpdateSchema = userSchema.partial().extend({
+  isActive: z.boolean().optional(),
+  password: z.string().min(8, "Password must be at least 8 characters").optional(),
+});
+
 export const productSchema = z.object({
   name: z.string().min(2, "Product name is required"),
   productCode: z.string().min(1, "Product code is required"),
@@ -53,6 +58,30 @@ export const productSchema = z.object({
   status: z.enum(["ACTIVE", "INACTIVE", "DISCONTINUED"]).default("ACTIVE"),
 });
 
+const productBaseShape = {
+  name: z.string().min(2, "Product name is required").optional(),
+  productCode: z.string().min(1, "Product code is required").optional(),
+  sku: z.string().min(1, "SKU is required").optional(),
+  barcode: z.string().optional(),
+  category: z.string().min(1, "Category is required").optional(),
+  brand: z.string().optional(),
+  vehicleCompatibility: z.array(z.string()).optional(),
+  description: z.string().optional(),
+  costPrice: z.coerce.number().min(0, "Cost price must be positive").optional(),
+  sellingPrice: z.coerce.number().min(0, "Selling price must be positive").optional(),
+  wholesalePrice: z.coerce.number().min(0, "Wholesale price must be positive").optional(),
+  quantity: z.coerce.number().int().min(0).optional(),
+  reorderLevel: z.coerce.number().int().min(0).optional(),
+  unitType: z.string().optional(),
+  supplier: z.string().optional(),
+  images: z.array(z.string()).optional(),
+  shop: z.string().min(1, "Shop location is required").optional(),
+  storageLocation: z.string().optional(),
+  status: z.enum(["ACTIVE", "INACTIVE", "DISCONTINUED"]).optional(),
+};
+
+export const productUpdateSchema = z.object(productBaseShape);
+
 export const shopSchema = z.object({
   name: z.string().min(2, "Shop name is required"),
   code: z
@@ -71,6 +100,28 @@ export const shopSchema = z.object({
   isDefault: z.boolean().default(false),
   notes: z.string().optional(),
 });
+
+const shopBaseShape = {
+  name: z.string().min(2, "Shop name is required").optional(),
+  code: z
+    .string()
+    .min(2)
+    .max(12)
+    .regex(/^[A-Z0-9-]+$/, "Code must be uppercase letters, numbers, or hyphens")
+    .transform((s) => s.toUpperCase())
+    .optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  region: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().email().optional().or(z.literal("")),
+  manager: z.string().optional(),
+  isActive: z.boolean().optional(),
+  isDefault: z.boolean().optional(),
+  notes: z.string().optional(),
+};
+
+export const shopUpdateSchema = z.object(shopBaseShape);
 
 export const signupSchema = z
   .object({
@@ -120,6 +171,18 @@ export const customerSchema = z.object({
   notes: z.string().optional(),
   isWholesale: z.boolean().default(false),
 });
+
+const customerBaseShape = {
+  name: z.string().min(2, "Customer name is required").optional(),
+  phone: z.string().min(7, "Phone number is required").optional(),
+  email: z.string().email().optional().or(z.literal("")),
+  address: z.string().optional(),
+  companyName: z.string().optional(),
+  notes: z.string().optional(),
+  isWholesale: z.boolean().optional(),
+};
+
+export const customerUpdateSchema = z.object(customerBaseShape);
 
 export const stockEntrySchema = z.object({
   product: z.string().min(1, "Product is required"),
@@ -188,20 +251,38 @@ export const returnSchema = z.object({
 
 export const settingsSchema = z.object({
   companyName: z.string().min(2),
-  address: z.string(),
-  phone: z.string(),
-  email: z.string().email(),
+  address: z.string().optional().default(""),
+  phone: z.string().optional().default(""),
+  email: z.string().email().optional().or(z.literal("")),
   logo: z.string().optional(),
   taxId: z.string().optional(),
-  currency: z.string(),
-  currencySymbol: z.string(),
-  taxRate: z.coerce.number().min(0).max(100),
-  receiptFooter: z.string(),
-  enableLowStockAlerts: z.boolean(),
-  enableEmailReceipts: z.boolean(),
-  enableDailyReports: z.boolean(),
-  receiptPrefix: z.string(),
+  currency: z.string().optional().default("GHS"),
+  currencySymbol: z.string().optional().default("GH₵"),
+  taxRate: z.coerce.number().min(0).max(100).optional().default(0),
+  receiptFooter: z.string().optional().default(""),
+  enableLowStockAlerts: z.boolean().optional().default(true),
+  enableEmailReceipts: z.boolean().optional().default(true),
+  enableDailyReports: z.boolean().optional().default(true),
+  receiptPrefix: z.string().optional().default("SW"),
   theme: z.enum(["light", "dark", "system"]).default("system"),
+});
+
+export const settingsUpdateSchema = z.object({
+  companyName: z.string().min(2).optional(),
+  address: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().email().optional().or(z.literal("")),
+  logo: z.string().optional(),
+  taxId: z.string().optional(),
+  currency: z.string().optional(),
+  currencySymbol: z.string().optional(),
+  taxRate: z.coerce.number().min(0).max(100).optional(),
+  receiptFooter: z.string().optional(),
+  enableLowStockAlerts: z.boolean().optional(),
+  enableEmailReceipts: z.boolean().optional(),
+  enableDailyReports: z.boolean().optional(),
+  receiptPrefix: z.string().optional(),
+  theme: z.enum(["light", "dark", "system"]).optional(),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
