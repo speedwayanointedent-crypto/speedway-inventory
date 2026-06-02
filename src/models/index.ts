@@ -7,6 +7,7 @@ export * from "./Sale";
 export * from "./InventoryTransaction";
 export * from "./StockEntry";
 export * from "./Return";
+export * from "./SupplierReturn";
 export * from "./Notification";
 export * from "./ActivityLog";
 export * from "./Settings";

@@ -1,19 +1,43 @@
 import { PageHeader } from "@/components/layout/page-header";
 import { StockEntryForm } from "@/components/inventory/stock-entry-form";
-import { getProducts } from "@/actions/inventory";
-import { getSuppliers } from "@/actions/suppliers";
+import { getStockEntryProducts } from "@/actions/stock";
+import { getSuppliersForSelect } from "@/actions/suppliers";
+import { getShops } from "@/actions/shops";
+
+export const metadata = { title: "New Stock Intake" };
 
 export default async function NewStockEntryPage() {
-  const [productsData, suppliersData] = await Promise.all([
-    getProducts({ limit: 500 }),
-    getSuppliers({ limit: 100 }),
+  const [products, suppliers, shops] = await Promise.all([
+    getStockEntryProducts(),
+    getSuppliersForSelect(),
+    getShops(),
   ]);
+
   return (
-    <div className="max-w-2xl mx-auto">
-      <PageHeader title="New Stock Entry" description="Add incoming stock to inventory" />
+    <div className="max-w-5xl mx-auto">
+      <PageHeader
+        title="Record Stock Intake"
+        description="Add incoming stock from suppliers with multi-product support, payment tracking, and full audit trail"
+      />
       <StockEntryForm
-        products={productsData.items as Array<{ _id: string; name: string; productCode: string }>}
-        suppliers={suppliersData.items as Array<{ _id: string; companyName: string }>}
+        mode="create"
+        products={products as Array<{
+          _id: string;
+          name: string;
+          productCode: string;
+          sku: string;
+          costPrice: number;
+          quantity: number;
+          reorderLevel: number;
+        }>}
+        suppliers={suppliers as Array<{
+          _id: string;
+          companyName: string;
+          contactPerson: string;
+          phone: string;
+          totalDue?: number;
+        }>}
+        shops={shops as Array<{ _id: string; name: string; code: string }>}
       />
     </div>
   );

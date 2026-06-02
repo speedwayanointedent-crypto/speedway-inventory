@@ -184,14 +184,40 @@ const customerBaseShape = {
 
 export const customerUpdateSchema = z.object(customerBaseShape);
 
-export const stockEntrySchema = z.object({
+export const stockLineItemSchema = z.object({
   product: z.string().min(1, "Product is required"),
-  quantityAdded: z.coerce.number().int().min(1, "Quantity must be at least 1"),
-  purchaseCost: z.coerce.number().min(0),
-  supplier: z.string().optional(),
+  quantity: z.coerce.number().int().min(1, "Quantity must be at least 1"),
+  unitCost: z.coerce.number().min(0, "Cost cannot be negative"),
+  updateCostPrice: z.boolean().default(false),
+});
+
+export const stockEntrySchema = z.object({
+  supplier: z.string().optional().or(z.literal("")),
+  shop: z.string().optional().or(z.literal("")),
   invoiceNumber: z.string().optional(),
   notes: z.string().optional(),
   entryDate: z.string().or(z.date()).optional(),
+  receivedDate: z.string().or(z.date()).optional(),
+  status: z.enum(["RECEIVED", "PENDING", "CANCELLED"]).default("RECEIVED"),
+  paymentStatus: z.enum(["PAID", "PARTIAL", "PENDING", "UNPAID"]).default("UNPAID"),
+  paymentMethod: z.enum(["CASH", "BANK_TRANSFER", "MOBILE_MONEY", "CHEQUE", "CREDIT"]).optional(),
+  amountPaid: z.coerce.number().min(0).default(0),
+  dueDate: z.string().or(z.date()).optional(),
+  lineItems: z.array(stockLineItemSchema).min(1, "At least one product is required"),
+});
+
+export const stockEntryUpdateSchema = z.object({
+  supplier: z.string().optional().or(z.literal("")),
+  shop: z.string().optional().or(z.literal("")),
+  invoiceNumber: z.string().optional(),
+  notes: z.string().optional(),
+  entryDate: z.string().or(z.date()).optional(),
+  status: z.enum(["RECEIVED", "PENDING", "CANCELLED"]).optional(),
+  paymentStatus: z.enum(["PAID", "PARTIAL", "PENDING", "UNPAID"]).optional(),
+  paymentMethod: z.enum(["CASH", "BANK_TRANSFER", "MOBILE_MONEY", "CHEQUE", "CREDIT"]).optional(),
+  amountPaid: z.coerce.number().min(0).optional(),
+  dueDate: z.string().or(z.date()).optional(),
+  lineItems: z.array(stockLineItemSchema).min(1).optional(),
 });
 
 export const saleItemSchema = z.object({
@@ -285,6 +311,80 @@ export const settingsUpdateSchema = z.object({
   theme: z.enum(["light", "dark", "system"]).optional(),
 });
 
+export const supplierReturnItemSchema = z.object({
+  product: z.string().min(1, "Product is required"),
+  quantity: z.coerce.number().int().min(1, "Quantity must be at least 1"),
+  unitCost: z.coerce.number().min(0, "Cost cannot be negative"),
+  reason: z
+    .enum([
+      "DEFECTIVE",
+      "WRONG_ITEM",
+      "OVERSTOCK",
+      "QUALITY_ISSUE",
+      "DAMAGED_IN_TRANSIT",
+      "EXPIRED",
+      "OTHER",
+    ])
+    .default("DEFECTIVE"),
+  restockable: z.boolean().default(true),
+});
+
+export const supplierReturnSchema = z.object({
+  supplier: z.string().optional().or(z.literal("")),
+  originalStockEntry: z.string().optional().or(z.literal("")),
+  primaryReason: z
+    .enum([
+      "DEFECTIVE",
+      "WRONG_ITEM",
+      "OVERSTOCK",
+      "QUALITY_ISSUE",
+      "DAMAGED_IN_TRANSIT",
+      "EXPIRED",
+      "OTHER",
+    ])
+    .default("DEFECTIVE"),
+  resolution: z
+    .enum(["REFUND", "REPLACEMENT", "CREDIT_NOTE", "PENDING"])
+    .default("PENDING"),
+  expectedRefundAmount: z.coerce.number().min(0).default(0),
+  status: z
+    .enum(["PENDING", "APPROVED", "IN_TRANSIT", "COMPLETED", "REJECTED", "CANCELLED"])
+    .default("PENDING"),
+  trackingNumber: z.string().optional(),
+  returnDate: z.string().or(z.date()).optional(),
+  notes: z.string().optional(),
+  items: z.array(supplierReturnItemSchema).min(1, "At least one item is required"),
+});
+
+export const supplierReturnUpdateSchema = z.object({
+  supplier: z.string().optional().or(z.literal("")),
+  primaryReason: z
+    .enum([
+      "DEFECTIVE",
+      "WRONG_ITEM",
+      "OVERSTOCK",
+      "QUALITY_ISSUE",
+      "DAMAGED_IN_TRANSIT",
+      "EXPIRED",
+      "OTHER",
+    ])
+    .optional(),
+  resolution: z
+    .enum(["REFUND", "REPLACEMENT", "CREDIT_NOTE", "PENDING"])
+    .optional(),
+  expectedRefundAmount: z.coerce.number().min(0).optional(),
+  actualRefundAmount: z.coerce.number().min(0).optional(),
+  status: z
+    .enum(["PENDING", "APPROVED", "IN_TRANSIT", "COMPLETED", "REJECTED", "CANCELLED"])
+    .optional(),
+  trackingNumber: z.string().optional(),
+  returnDate: z.string().or(z.date()).optional(),
+  shippedDate: z.string().or(z.date()).optional(),
+  completedDate: z.string().or(z.date()).optional(),
+  notes: z.string().optional(),
+  items: z.array(supplierReturnItemSchema).min(1).optional(),
+});
+
 export type LoginInput = z.infer<typeof loginSchema>;
 export type UserInput = z.infer<typeof userSchema>;
 export type ProductInput = z.infer<typeof productSchema>;
@@ -292,6 +392,11 @@ export type CategoryInput = z.infer<typeof categorySchema>;
 export type SupplierInput = z.infer<typeof supplierSchema>;
 export type CustomerInput = z.infer<typeof customerSchema>;
 export type StockEntryInput = z.infer<typeof stockEntrySchema>;
+export type StockEntryUpdateInput = z.infer<typeof stockEntryUpdateSchema>;
+export type StockLineItemInput = z.infer<typeof stockLineItemSchema>;
 export type SaleInput = z.infer<typeof saleSchema>;
 export type ReturnInput = z.infer<typeof returnSchema>;
+export type SupplierReturnItemInput = z.infer<typeof supplierReturnItemSchema>;
+export type SupplierReturnInput = z.infer<typeof supplierReturnSchema>;
+export type SupplierReturnUpdateInput = z.infer<typeof supplierReturnUpdateSchema>;
 export type SettingsInput = z.infer<typeof settingsSchema>;

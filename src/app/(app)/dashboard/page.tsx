@@ -14,6 +14,11 @@ import {
   Plus,
   Receipt as ReceiptIcon,
   ArrowRight,
+  PackagePlus,
+  Building2,
+  Truck,
+  FileText,
+  Undo2,
 } from "lucide-react";
 import { getDashboardMetrics } from "@/actions/reports";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -180,6 +185,77 @@ export default async function DashboardPage() {
           icon={Wallet}
           href="/reports/inventory"
           accent="from-indigo-500 to-blue-500"
+        />
+      </div>
+
+      <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          title="Stock Today"
+          value={formatCurrency((data.stock?.today as { cost: number })?.cost || 0)}
+          change={`${(data.stock?.today as { entries: number })?.entries || 0} intakes`}
+          icon={PackagePlus}
+          trend="up"
+          href="/stock-entries"
+          accent="from-emerald-500 to-teal-500"
+        />
+        <StatCard
+          title="Stock This Week"
+          value={formatCurrency((data as { stock?: { week?: { cost: number } } }).stock?.week?.cost || 0)}
+          change={`${(data as { stock?: { week?: { entries: number } } }).stock?.week?.entries || 0} intakes`}
+          icon={Truck}
+          trend="up"
+          href="/stock-entries"
+          accent="from-blue-500 to-cyan-500"
+        />
+        <StatCard
+          title="Stock This Month"
+          value={formatCurrency((data as { stock?: { month?: { cost: number } } }).stock?.month?.cost || 0)}
+          change={`${(data as { stock?: { month?: { entries: number } } }).stock?.month?.entries || 0} intakes`}
+          icon={FileText}
+          trend="up"
+          href="/reports/stock-entries"
+          accent="from-violet-500 to-fuchsia-500"
+        />
+        <StatCard
+          title="Owed to Suppliers"
+          value={formatCurrency((data.stock?.outstanding as number) || 0)}
+          icon={Wallet}
+          trend={(data.stock?.outstanding as number) > 0 ? "down" : "neutral"}
+          href="/reports/supplier-purchases"
+          accent="from-amber-500 to-orange-500"
+        />
+      </div>
+
+      <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          title="Returns (Month)"
+          value={String((data.supplierReturns?.month as { returns: number })?.returns || 0)}
+          change={`${(data.supplierReturns?.month as { quantity: number })?.quantity || 0} units`}
+          icon={Undo2}
+          href="/supplier-returns"
+          accent="from-rose-500 to-pink-500"
+        />
+        <StatCard
+          title="Pending Returns"
+          value={String(data.supplierReturns?.pending || 0)}
+          icon={AlertTriangle}
+          trend={(data.supplierReturns?.pending || 0) > 0 ? "down" : "neutral"}
+          href="/supplier-returns?status=PENDING"
+          accent="from-amber-500 to-orange-500"
+        />
+        <StatCard
+          title="Returned Value (Month)"
+          value={formatCurrency((data.supplierReturns?.month as { value: number })?.value || 0)}
+          icon={Wallet}
+          href="/reports/supplier-returns"
+          accent="from-fuchsia-500 to-rose-500"
+        />
+        <StatCard
+          title="Total Returns Value"
+          value={formatCurrency((data.supplierReturns?.valueAllTime as number) || 0)}
+          icon={FileText}
+          href="/reports/supplier-returns"
+          accent="from-zinc-500 to-slate-500"
         />
       </div>
 
@@ -381,6 +457,151 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="overflow-hidden">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <div>
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+              <PackagePlus className="h-4 w-4" /> Recent stock intakes
+            </CardTitle>
+            <CardDescription className="text-xs">New stock received</CardDescription>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+              <Link href="/reports/stock-entries">
+                <FileText className="h-3 w-3" /> Report
+              </Link>
+            </Button>
+            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+              <Link href="/stock-entries">
+                View all <ArrowUpRight className="h-3 w-3" />
+              </Link>
+            </Button>
+            <Button asChild size="sm" className="shadow-sm">
+              <Link href="/stock-entries/new">
+                <Plus className="h-3 w-3" /> New
+              </Link>
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {((data.stock?.recent as unknown[]) || []).length === 0 ? (
+            <p className="text-sm text-muted-foreground py-6 text-center">
+              No stock intakes recorded yet
+            </p>
+          ) : (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              {(data.stock?.recent as Array<{
+                _id: string;
+                referenceNumber: string;
+                supplierName?: string;
+                totalQuantity: number;
+                totalCost: number;
+                status: string;
+                entryDate: string;
+              }>).map((e) => (
+                <Link
+                  key={e._id}
+                  href={`/stock-entries/${e._id}`}
+                  className="block rounded-lg border bg-card p-3 hover:border-primary hover:shadow-md transition-all"
+                >
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <p className="text-xs font-mono font-semibold truncate flex items-center gap-1">
+                      <PackagePlus className="h-3 w-3 text-emerald-500 shrink-0" />
+                      {e.referenceNumber}
+                    </p>
+                    <Badge
+                      variant={e.status === "RECEIVED" ? "success" : "warning"}
+                      className="text-[9px] h-4 px-1.5 shrink-0"
+                    >
+                      {e.status}
+                    </Badge>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground flex items-center gap-1 truncate">
+                    <Building2 className="h-2.5 w-2.5 shrink-0" />
+                    {e.supplierName || "Unspecified"}
+                  </p>
+                  <div className="flex items-baseline justify-between mt-2 pt-2 border-t border-border/60">
+                    <span className="text-emerald-600 font-semibold text-xs">
+                      +{e.totalQuantity}
+                    </span>
+                    <span className="text-sm font-bold">{formatCurrency(e.totalCost)}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="overflow-hidden">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <div>
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+              <Undo2 className="h-4 w-4" /> Recent supplier returns
+            </CardTitle>
+            <CardDescription className="text-xs">Items sent back to suppliers</CardDescription>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+              <Link href="/reports/supplier-returns">
+                <FileText className="h-3 w-3" /> Report
+              </Link>
+            </Button>
+            <Button asChild size="sm" className="shadow-sm">
+              <Link href="/supplier-returns/new">
+                <Plus className="h-3 w-3" /> New
+              </Link>
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {((data.supplierReturns?.recent as unknown[]) || []).length === 0 ? (
+            <p className="text-sm text-muted-foreground py-6 text-center">
+              No supplier returns yet
+            </p>
+          ) : (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              {(data.supplierReturns?.recent as Array<{
+                _id: string;
+                referenceNumber: string;
+                supplierName?: string;
+                totalQuantity: number;
+                totalValue: number;
+                status: string;
+                returnDate: string;
+              }>).map((r) => (
+                <Link
+                  key={r._id}
+                  href={`/supplier-returns/${r._id}`}
+                  className="block rounded-lg border bg-card p-3 hover:border-primary hover:shadow-md transition-all"
+                >
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <p className="text-xs font-mono font-semibold truncate flex items-center gap-1">
+                      <Undo2 className="h-3 w-3 text-rose-500 shrink-0" />
+                      {r.referenceNumber}
+                    </p>
+                    <Badge
+                      variant={r.status === "COMPLETED" ? "success" : "warning"}
+                      className="text-[9px] h-4 px-1.5 shrink-0"
+                    >
+                      {r.status}
+                    </Badge>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground flex items-center gap-1 truncate">
+                    <Building2 className="h-2.5 w-2.5 shrink-0" />
+                    {r.supplierName || "Unspecified"}
+                  </p>
+                  <div className="flex items-baseline justify-between mt-2 pt-2 border-t border-border/60">
+                    <span className="text-rose-600 font-semibold text-xs">−{r.totalQuantity}</span>
+                    <span className="text-sm font-bold">{formatCurrency(r.totalValue)}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

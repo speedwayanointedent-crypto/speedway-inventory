@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { connectDB } from "@/lib/db";
 import { Supplier } from "@/models";
-import { requirePermission } from "@/lib/session";
+import { requireAuth, requirePermission } from "@/lib/session";
 import { supplierSchema, type SupplierInput } from "@/lib/validations";
 import { PERMISSIONS } from "@/lib/constants";
 import { logActivity } from "@/lib/activity";
@@ -69,6 +69,16 @@ export async function getSuppliers(opts?: { search?: string; page?: number; limi
     Supplier.countDocuments(filter),
   ]);
   return { items: safeJSON<unknown[]>(items), total, page, totalPages: Math.ceil(total / limit) };
+}
+
+export async function getSuppliersForSelect() {
+  await requireAuth();
+  await connectDB();
+  const items = await Supplier.find({ isActive: true })
+    .select("companyName contactPerson phone totalDue")
+    .sort({ companyName: 1 })
+    .lean();
+  return safeJSON<unknown[]>(items);
 }
 
 export async function getSupplier(id: string) {

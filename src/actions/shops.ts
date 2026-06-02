@@ -17,6 +17,16 @@ export async function getShops(opts?: { includeInactive?: boolean }) {
   return safeJSON<unknown[]>(items);
 }
 
+export async function getShopsForSelect() {
+  await requirePermission(PERMISSIONS.VIEW_INVENTORY);
+  await connectDB();
+  const items = await Shop.find({ isActive: true })
+    .sort({ isDefault: -1, name: 1 })
+    .select("_id name code isDefault")
+    .lean();
+  return safeJSON<unknown[]>(items);
+}
+
 export async function getShop(id: string) {
   await requirePermission(PERMISSIONS.VIEW_INVENTORY);
   await connectDB();

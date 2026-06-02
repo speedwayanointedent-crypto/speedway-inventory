@@ -46,6 +46,20 @@ export function generateSKU(category: string): string {
   return `${cat}-${random}`;
 }
 
+export function generateStockReferenceNumber(prefix = "STK"): string {
+  const now = new Date();
+  const ymd = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+  const random = crypto.randomBytes(3).toString("hex").toUpperCase();
+  return `${prefix}-${ymd}-${random}`;
+}
+
+export function generateSupplierReturnReferenceNumber(prefix = "SRT"): string {
+  const now = new Date();
+  const ymd = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+  const random = crypto.randomBytes(3).toString("hex").toUpperCase();
+  return `${prefix}-${ymd}-${random}`;
+}
+
 export function getInitials(name: string): string {
   return name
     .split(" ")
