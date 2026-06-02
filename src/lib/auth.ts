@@ -3,7 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { connectDB } from "@/lib/db";
 import { User } from "@/models/User";
-import { ROLE_PERMISSIONS, type Role, type Permission } from "@/lib/constants";
+import { ROLE_PERMISSIONS, USER_STATUS, type Role, type Permission } from "@/lib/constants";
 
 declare module "next-auth" {
   interface Session {
@@ -14,6 +14,7 @@ declare module "next-auth" {
       role: Role;
       permissions: Permission[];
       avatar?: string;
+      status?: string;
     };
   }
   interface User {
@@ -21,6 +22,7 @@ declare module "next-auth" {
     role: Role;
     permissions: Permission[];
     avatar?: string;
+    status?: string;
     remember?: boolean;
   }
 }
@@ -32,6 +34,7 @@ declare module "next-auth/jwt" {
     permissions: Permission[];
     avatar?: string;
     isActive?: boolean;
+    status?: string;
     remember?: boolean;
   }
 }
@@ -56,11 +59,18 @@ export const authOptions: NextAuthOptions = {
 
         const user = await User.findOne({
           email: credentials.email.toLowerCase(),
-          isActive: true,
         }).select("+password");
 
         if (!user) {
           throw new Error("Invalid credentials");
+        }
+
+        if (user.status === USER_STATUS.PENDING) {
+          throw new Error("PENDING_APPROVAL");
+        }
+
+        if (user.status === USER_STATUS.SUSPENDED || !user.isActive) {
+          throw new Error("ACCOUNT_DISABLED");
         }
 
         const isValid = await bcrypt.compare(credentials.password, user.password);
@@ -90,6 +100,7 @@ export const authOptions: NextAuthOptions = {
           role: user.role,
           permissions,
           avatar: user.avatar,
+          status: user.status,
           remember,
         };
       },
@@ -114,6 +125,7 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role;
         token.permissions = user.permissions;
         token.avatar = user.avatar;
+        token.status = user.status;
         token.isActive = true;
         token.remember = user.remember ?? false;
         if (!user.remember) {
@@ -126,7 +138,7 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (!token?.id) return null as unknown as typeof session;
 
-      if (token.isActive === false) {
+      if (token.isActive === false || token.status === "PENDING" || token.status === "SUSPENDED") {
         return null as unknown as typeof session;
       }
 
@@ -134,6 +146,7 @@ export const authOptions: NextAuthOptions = {
       session.user.role = token.role;
       session.user.permissions = token.permissions;
       session.user.avatar = token.avatar;
+      session.user.status = token.status;
       session.user.name = (token.name as string) ?? session.user.name;
       session.user.email = (token.email as string) ?? session.user.email;
       return session;

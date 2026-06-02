@@ -6,7 +6,7 @@ import { connectDB } from "@/lib/db";
 import { User, Settings, Category } from "@/models";
 import { requireRole, requireAuth } from "@/lib/session";
 import { userSchema, userUpdateSchema, settingsUpdateSchema, type UserInput, type SettingsInput } from "@/lib/validations";
-import { ROLES, ROLE_PERMISSIONS } from "@/lib/constants";
+import { ROLES, ROLE_PERMISSIONS, USER_STATUS } from "@/lib/constants";
 import { logActivity } from "@/lib/activity";
 import { sendEmail, emailTemplates } from "@/lib/mail";
 import { safeJSON } from "@/lib/utils";
@@ -74,6 +74,74 @@ export async function deleteUser(id: string) {
     action: "DELETE_USER",
     module: "USERS",
     description: `Deactivated user ${id}`,
+  });
+  revalidatePath("/admin/users");
+  return { success: true };
+}
+
+export async function approveUser(id: string, role: "ADMIN" | "STAFF" = ROLES.STAFF) {
+  const admin = await requireRole(ROLES.ADMIN);
+  if (admin.id === id) return { success: false, error: "You cannot approve yourself" };
+  await connectDB();
+
+  const target = await User.findById(id).select("email name status").lean();
+  if (!target) return { success: false, error: "User not found" };
+
+  await User.findByIdAndUpdate(id, {
+    status: USER_STATUS.ACTIVE,
+    role,
+    permissions: ROLE_PERMISSIONS[role],
+    isActive: true,
+    approvedBy: admin.id,
+    approvedAt: new Date(),
+  });
+
+  await logActivity(admin, {
+    action: "APPROVE_USER",
+    module: "USERS",
+    description: `Approved ${target.email} as ${role}`,
+  });
+
+  try {
+    await sendEmail({
+      to: target.email,
+      toName: target.name,
+      subject: "Your SpeedWay account is approved",
+      html: emailTemplates.accountApproved(target.name),
+    });
+  } catch {
+    // best-effort
+  }
+
+  revalidatePath("/admin/users");
+  return { success: true };
+}
+
+export async function rejectUser(id: string) {
+  const admin = await requireRole(ROLES.ADMIN);
+  if (admin.id === id) return { success: false, error: "You cannot reject yourself" };
+  await connectDB();
+  await User.findByIdAndUpdate(id, { status: USER_STATUS.SUSPENDED, isActive: false });
+  await logActivity(admin, {
+    action: "REJECT_USER",
+    module: "USERS",
+    description: `Rejected/suspended user ${id}`,
+  });
+  revalidatePath("/admin/users");
+  return { success: true };
+}
+
+export async function changeUserRole(id: string, role: "ADMIN" | "STAFF") {
+  const admin = await requireRole(ROLES.ADMIN);
+  await connectDB();
+  await User.findByIdAndUpdate(id, {
+    role,
+    permissions: ROLE_PERMISSIONS[role],
+  });
+  await logActivity(admin, {
+    action: "UPDATE_USER_ROLE",
+    module: "USERS",
+    description: `Changed role of user ${id} to ${role}`,
   });
   revalidatePath("/admin/users");
   return { success: true };

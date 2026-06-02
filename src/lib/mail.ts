@@ -99,6 +99,29 @@ export const emailTemplates = {
       "Welcome"
     ),
 
+  pendingApproval: (name: string) =>
+    baseTemplate(
+      `
+      <h2 style="margin:0 0 16px;font-size:20px;">Thanks for signing up, ${name}!</h2>
+      <p>Your account at <strong>${APP_CONFIG.name}</strong> has been created and is waiting for an administrator to review and activate it.</p>
+      <p>You will receive another email as soon as your account is approved. If you have any questions in the meantime, contact the team at <a href="mailto:${APP_CONFIG.email}">${APP_CONFIG.email}</a>.</p>
+      <div style="background:#fef3c7;border-left:4px solid #f59e0b;border-radius:6px;padding:12px 16px;margin:20px 0;">
+        <p style="margin:0;font-size:13px;color:#92400e;"><strong>What's next?</strong> An admin will assign your role (Staff or Admin) and you'll be able to sign in.</p>
+      </div>
+    `,
+      "Your account is pending approval"
+    ),
+
+  accountApproved: (name: string) =>
+    baseTemplate(
+      `
+      <h2 style="margin:0 0 16px;font-size:20px;">You're approved, ${name}!</h2>
+      <p>Your account at <strong>${APP_CONFIG.name}</strong> has been approved. You can now sign in and start using the dashboard.</p>
+      <a href="${APP_CONFIG.url}/login" style="display:inline-block;background:#10b981;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin-top:16px;">Sign in to dashboard</a>
+    `,
+      "Your account is approved"
+    ),
+
   passwordReset: (name: string, resetUrl: string) =>
     baseTemplate(
       `

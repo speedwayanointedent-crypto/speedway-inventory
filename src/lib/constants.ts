@@ -19,6 +19,14 @@ export const ROLES = {
 
 export type Role = (typeof ROLES)[keyof typeof ROLES];
 
+export const USER_STATUS = {
+  PENDING: "PENDING",
+  ACTIVE: "ACTIVE",
+  SUSPENDED: "SUSPENDED",
+} as const;
+
+export type UserStatus = (typeof USER_STATUS)[keyof typeof USER_STATUS];
+
 export const PERMISSIONS = {
   VIEW_INVENTORY: "VIEW_INVENTORY",
   CREATE_INVENTORY: "CREATE_INVENTORY",

@@ -46,7 +46,7 @@ export function LandingNav() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link href="/" className="group flex items-center gap-2.5">
           <div className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-blue-600 text-primary-foreground shadow-lg shadow-primary/20 transition-transform group-hover:scale-105">
-            <Wrench className="h-4.5 w-4.5" />
+            <Wrench className="h-4 w-4" />
             <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-white/20 to-transparent" />
           </div>
           <div className="flex flex-col leading-tight">

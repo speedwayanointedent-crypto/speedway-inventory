@@ -4,10 +4,9 @@ import bcrypt from "bcryptjs";
 import { connectDB } from "@/lib/db";
 import { User } from "@/models";
 import { signupSchema, type SignupInput } from "@/lib/validations";
-import { ROLE_PERMISSIONS, ROLES } from "@/lib/constants";
+import { ROLE_PERMISSIONS, ROLES, USER_STATUS, APP_CONFIG } from "@/lib/constants";
 import { logActivity } from "@/lib/activity";
 import { sendEmail, emailTemplates } from "@/lib/mail";
-import { APP_CONFIG } from "@/lib/constants";
 
 export async function signup(input: SignupInput) {
   const data = signupSchema.parse(input);
@@ -29,8 +28,9 @@ export async function signup(input: SignupInput) {
       phone: data.phone.trim(),
       password: hashed,
       role: ROLES.STAFF,
-      permissions: ROLE_PERMISSIONS[ROLES.STAFF],
-      isActive: true,
+      status: USER_STATUS.PENDING,
+      permissions: [],
+      isActive: false,
     });
   } catch (err: unknown) {
     const e = err as { code?: number; keyPattern?: Record<string, unknown> };
@@ -49,7 +49,7 @@ export async function signup(input: SignupInput) {
     {
       action: "SIGNUP",
       module: "AUTH",
-      description: `New staff account created via public signup: ${user.email}`,
+      description: `New account awaiting admin approval: ${user.email}`,
     }
   );
 
@@ -57,8 +57,8 @@ export async function signup(input: SignupInput) {
     await sendEmail({
       to: user.email,
       toName: user.name,
-      subject: `Welcome to ${APP_CONFIG.name}`,
-      html: emailTemplates.selfSignup(user.name),
+      subject: `Welcome to ${APP_CONFIG.name} — pending approval`,
+      html: emailTemplates.pendingApproval(user.name),
     });
   } catch {
     // welcome email is best-effort

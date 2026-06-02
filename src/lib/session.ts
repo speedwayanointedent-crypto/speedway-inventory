@@ -15,6 +15,8 @@ export async function getCurrentUser() {
 export async function requireAuth() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  if (user.status === "PENDING") redirect("/pending");
+  if (user.status === "SUSPENDED") redirect("/pending?reason=suspended");
   return user;
 }
 

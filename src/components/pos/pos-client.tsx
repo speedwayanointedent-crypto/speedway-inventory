@@ -17,6 +17,8 @@ import {
   Receipt,
   Percent,
   CheckCircle2,
+  Phone,
+  Tag,
   X,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,7 +38,6 @@ import { Switch } from "@/components/ui/switch";
 import { formatCurrency, truncate } from "@/lib/utils";
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS, type PaymentMethod } from "@/lib/constants";
 import { searchProductsForPOS, createSale } from "@/actions/sales";
-import { searchCustomersForPOS, createCustomer } from "@/actions/customers";
 
 interface Product {
   _id: string;
@@ -47,13 +48,6 @@ interface Product {
   costPrice: number;
   quantity: number;
   unitType: string;
-}
-
-interface Customer {
-  _id: string;
-  name: string;
-  phone: string;
-  isWholesale?: boolean;
 }
 
 interface CartItem {
@@ -75,20 +69,24 @@ const PAYMENT_ICONS: Record<PaymentMethod, React.ComponentType<{ className?: str
   MIXED: Wallet,
 };
 
+const PAYMENT_ACCENT: Record<PaymentMethod, string> = {
+  CASH: "from-emerald-500 to-teal-500",
+  MOBILE_MONEY: "from-amber-500 to-orange-500",
+  BANK_TRANSFER: "from-blue-500 to-indigo-500",
+  MIXED: "from-violet-500 to-fuchsia-500",
+};
+
 export function POSClient({ taxRate }: { taxRate: number }) {
   const router = useRouter();
   const [query, setQuery] = React.useState("");
   const [products, setProducts] = React.useState<Product[]>([]);
   const [searching, setSearching] = React.useState(false);
   const [cart, setCart] = React.useState<CartItem[]>([]);
-  const [customer, setCustomer] = React.useState<Customer | null>(null);
-  const [customerQuery, setCustomerQuery] = React.useState("");
-  const [customerResults, setCustomerResults] = React.useState<Customer[]>([]);
-  const [customerOpen, setCustomerOpen] = React.useState(false);
-  const [newCustomerOpen, setNewCustomerOpen] = React.useState(false);
   const [payOpen, setPayOpen] = React.useState(false);
   const [paymentMethod, setPaymentMethod] = React.useState<PaymentMethod>("CASH");
   const [amountPaid, setAmountPaid] = React.useState("");
+  const [customerName, setCustomerName] = React.useState("");
+  const [customerPhone, setCustomerPhone] = React.useState("");
   const [discountPct, setDiscountPct] = React.useState(0);
   const [isWholesale, setIsWholesale] = React.useState(false);
   const [enableTax, setEnableTax] = React.useState(false);
@@ -96,10 +94,8 @@ export function POSClient({ taxRate }: { taxRate: number }) {
 
   const searchRef = React.useRef<HTMLInputElement>(null);
 
-  const debouncedSearch = React.useRef<NodeJS.Timeout | null>(null);
   React.useEffect(() => {
-    if (debouncedSearch.current) clearTimeout(debouncedSearch.current);
-    debouncedSearch.current = setTimeout(async () => {
+    const t = setTimeout(async () => {
       setSearching(true);
       try {
         const result = await searchProductsForPOS(query);
@@ -108,25 +104,8 @@ export function POSClient({ taxRate }: { taxRate: number }) {
         setSearching(false);
       }
     }, 200);
-    return () => {
-      if (debouncedSearch.current) clearTimeout(debouncedSearch.current);
-    };
-  }, [query]);
-
-  React.useEffect(() => {
-    (async () => {
-      const r = await searchCustomersForPOS("");
-      setCustomerResults(r as Customer[]);
-    })();
-  }, []);
-
-  React.useEffect(() => {
-    const t = setTimeout(async () => {
-      const r = await searchCustomersForPOS(customerQuery);
-      setCustomerResults(r as Customer[]);
-    }, 200);
     return () => clearTimeout(t);
-  }, [customerQuery]);
+  }, [query]);
 
   const addToCart = (p: Product) => {
     if (p.quantity <= 0) return toast.error("Out of stock");
@@ -191,6 +170,15 @@ export function POSClient({ taxRate }: { taxRate: number }) {
   const total = afterDiscount + taxAmount;
   const paid = parseFloat(amountPaid) || 0;
   const change = paid - total;
+  const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
+
+  const openPayment = () => {
+    if (cart.length === 0) return toast.error("Cart is empty");
+    setAmountPaid(total.toFixed(2));
+    setCustomerName("");
+    setCustomerPhone("");
+    setPayOpen(true);
+  };
 
   const handleCompleteSale = async () => {
     if (cart.length === 0) return toast.error("Cart is empty");
@@ -207,9 +195,9 @@ export function POSClient({ taxRate }: { taxRate: number }) {
         discount: i.discount,
         subtotal: i.unitPrice * i.quantity,
       }));
+      const finalName = customerName.trim() || "Walk-in Customer";
       const res = await createSale({
-        customer: customer?._id,
-        customerName: customer?.name ?? "Walk-in Customer",
+        customerName: finalName,
         items,
         subtotal,
         totalDiscount,
@@ -223,14 +211,17 @@ export function POSClient({ taxRate }: { taxRate: number }) {
         isWholesale,
       });
       if (res.success) {
-        toast.success(`Sale completed: ${res.saleNumber}`);
+        toast.success(`Sale ${res.saleNumber} completed`, {
+          description: `${finalName} · ${formatCurrency(total)}`,
+        });
         if (res.publicId) {
           window.open(`/receipt/${res.publicId}`, "_blank");
         }
         setCart([]);
-        setCustomer(null);
         setAmountPaid("");
         setDiscountPct(0);
+        setCustomerName("");
+        setCustomerPhone("");
         setPayOpen(false);
         router.refresh();
       } else {
@@ -242,7 +233,7 @@ export function POSClient({ taxRate }: { taxRate: number }) {
   };
 
   return (
-    <div className="grid lg:grid-cols-[1fr_400px] gap-4 -m-6 p-6 min-h-[calc(100vh-4rem)]">
+    <div className="grid lg:grid-cols-[1fr_400px] gap-4 -m-4 sm:-m-6 p-4 sm:p-6 min-h-[calc(100vh-4rem)]">
       <div className="space-y-4 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <div className="relative flex-1 min-w-[200px]">
@@ -256,9 +247,11 @@ export function POSClient({ taxRate }: { taxRate: number }) {
               autoFocus
             />
           </div>
-          <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-card border">
-            <Switch checked={isWholesale} onCheckedChange={setIsWholesale} />
-            <Label className="text-xs cursor-pointer">Wholesale Pricing</Label>
+          <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-card border h-11">
+            <Switch checked={isWholesale} onCheckedChange={setIsWholesale} id="wholesale" />
+            <Label htmlFor="wholesale" className="text-xs cursor-pointer whitespace-nowrap">
+              Wholesale Pricing
+            </Label>
           </div>
         </div>
 
@@ -267,9 +260,12 @@ export function POSClient({ taxRate }: { taxRate: number }) {
             <ScrollArea className="h-[calc(100vh-15rem)]">
               {searching && <p className="p-6 text-sm text-muted-foreground">Searching...</p>}
               {!searching && products.length === 0 && (
-                <p className="p-12 text-center text-sm text-muted-foreground">
-                  No products found. Try a different search.
-                </p>
+                <div className="p-12 text-center">
+                  <Receipt className="h-10 w-10 text-muted-foreground/50 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    {query ? "No products match your search" : "Start typing to search products"}
+                  </p>
+                </div>
               )}
               <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2 p-3">
                 {products.map((p) => (
@@ -280,7 +276,7 @@ export function POSClient({ taxRate }: { taxRate: number }) {
                     disabled={p.quantity <= 0}
                     className="text-left rounded-md border bg-card hover:bg-accent hover:border-primary transition p-3 disabled:opacity-50 disabled:cursor-not-allowed group"
                   >
-                    <div className="aspect-square rounded bg-muted/40 mb-2 flex items-center justify-center group-hover:bg-primary/10">
+                    <div className="aspect-square rounded bg-muted/40 mb-2 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
                       <Receipt className="h-8 w-8 text-muted-foreground group-hover:text-primary" />
                     </div>
                     <p className="text-xs font-semibold leading-tight truncate" title={p.name}>
@@ -306,39 +302,16 @@ export function POSClient({ taxRate }: { taxRate: number }) {
       </div>
 
       <div className="flex flex-col h-[calc(100vh-7rem)] sticky top-20">
-        <Card className="flex-1 flex flex-col min-h-0">
-          <div className="p-4 border-b">
+        <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <div className="p-3 sm:p-4 border-b flex items-center justify-between">
             <h2 className="text-sm font-semibold flex items-center gap-2">
               <ShoppingCart className="h-4 w-4" />
-              Cart ({cart.length})
+              Cart
             </h2>
-          </div>
-
-          <div className="p-3 border-b">
-            {customer ? (
-              <div className="flex items-center justify-between bg-primary/5 rounded p-2">
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold truncate">{customer.name}</p>
-                  <p className="text-[10px] text-muted-foreground">{customer.phone}</p>
-                </div>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-6 w-6"
-                  onClick={() => setCustomer(null)}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              </div>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full"
-                onClick={() => setCustomerOpen(true)}
-              >
-                <User className="h-3 w-3" /> Select customer
-              </Button>
+            {cartCount > 0 && (
+              <Badge variant="secondary" className="text-[10px]">
+                {cartCount} {cartCount === 1 ? "item" : "items"}
+              </Badge>
             )}
           </div>
 
@@ -347,11 +320,14 @@ export function POSClient({ taxRate }: { taxRate: number }) {
               <div className="p-12 text-center">
                 <ShoppingCart className="h-10 w-10 text-muted-foreground/50 mx-auto mb-2" />
                 <p className="text-xs text-muted-foreground">Cart is empty</p>
+                <p className="text-[10px] text-muted-foreground/70 mt-1">
+                  Search and tap products to add
+                </p>
               </div>
             ) : (
               <div className="p-3 space-y-2">
                 {cart.map((i) => (
-                  <div key={i.product} className="border rounded p-2 space-y-1">
+                  <div key={i.product} className="border rounded-md p-2 space-y-1.5 hover:border-border/80 transition">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <p className="text-xs font-semibold truncate">{i.productName}</p>
@@ -360,8 +336,9 @@ export function POSClient({ taxRate }: { taxRate: number }) {
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="h-5 w-5 -mt-1"
+                        className="h-6 w-6 -mt-1"
                         onClick={() => removeItem(i.product)}
+                        aria-label="Remove item"
                       >
                         <Trash2 className="h-3 w-3 text-destructive" />
                       </Button>
@@ -371,17 +348,19 @@ export function POSClient({ taxRate }: { taxRate: number }) {
                         <Button
                           size="icon"
                           variant="outline"
-                          className="h-6 w-6"
+                          className="h-7 w-7"
                           onClick={() => updateQty(i.product, -1)}
+                          aria-label="Decrease quantity"
                         >
                           <Minus className="h-3 w-3" />
                         </Button>
-                        <span className="text-xs font-bold w-6 text-center">{i.quantity}</span>
+                        <span className="text-xs font-bold w-7 text-center">{i.quantity}</span>
                         <Button
                           size="icon"
                           variant="outline"
-                          className="h-6 w-6"
+                          className="h-7 w-7"
                           onClick={() => updateQty(i.product, 1)}
+                          aria-label="Increase quantity"
                         >
                           <Plus className="h-3 w-3" />
                         </Button>
@@ -403,7 +382,7 @@ export function POSClient({ taxRate }: { taxRate: number }) {
             )}
           </ScrollArea>
 
-          <div className="border-t p-3 space-y-2 text-xs">
+          <div className="border-t p-3 space-y-2 text-xs bg-gradient-to-br from-muted/30 to-card">
             <div className="flex items-center justify-between gap-2">
               <Label className="text-xs flex items-center gap-1">
                 <Percent className="h-3 w-3" /> Discount %
@@ -419,7 +398,7 @@ export function POSClient({ taxRate }: { taxRate: number }) {
             </div>
             <div className="flex items-center justify-between">
               <Label className="text-xs cursor-pointer flex items-center gap-2">
-                <Switch checked={enableTax} onCheckedChange={setEnableTax} />
+                <Switch id="tax" checked={enableTax} onCheckedChange={setEnableTax} />
                 Apply Tax ({(taxRate * 100).toFixed(1)}%)
               </Label>
             </div>
@@ -442,13 +421,10 @@ export function POSClient({ taxRate }: { taxRate: number }) {
               <span className="text-primary">{formatCurrency(total)}</span>
             </div>
             <Button
-              className="w-full h-11 mt-2"
+              className="w-full h-11 mt-2 shadow-lg shadow-primary/20"
               size="lg"
               disabled={cart.length === 0}
-              onClick={() => {
-                setAmountPaid(total.toFixed(2));
-                setPayOpen(true);
-              }}
+              onClick={openPayment}
             >
               <CheckCircle2 className="h-4 w-4" /> Charge {formatCurrency(total)}
             </Button>
@@ -456,115 +432,120 @@ export function POSClient({ taxRate }: { taxRate: number }) {
         </Card>
       </div>
 
-      <Dialog open={customerOpen} onOpenChange={setCustomerOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Select Customer</DialogTitle>
-            <DialogDescription>Search or add a new customer</DialogDescription>
-          </DialogHeader>
-          <Input
-            value={customerQuery}
-            onChange={(e) => setCustomerQuery(e.target.value)}
-            placeholder="Search by name, phone..."
-            autoFocus
-          />
-          <ScrollArea className="h-64">
-            <div className="space-y-1">
-              {customerResults.map((c) => (
-                <button
-                  key={c._id}
-                  type="button"
-                  onClick={() => {
-                    setCustomer(c);
-                    if (c.isWholesale) setIsWholesale(true);
-                    setCustomerOpen(false);
-                  }}
-                  className="w-full text-left px-3 py-2 hover:bg-accent rounded-md flex items-center justify-between"
-                >
-                  <div>
-                    <p className="text-sm font-medium">{c.name}</p>
-                    <p className="text-xs text-muted-foreground">{c.phone}</p>
-                  </div>
-                  {c.isWholesale && <Badge variant="info">Wholesale</Badge>}
-                </button>
-              ))}
-            </div>
-          </ScrollArea>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setCustomerOpen(false);
-              setNewCustomerOpen(true);
-            }}
-          >
-            <Plus className="h-4 w-4" /> Add new customer
-          </Button>
-        </DialogContent>
-      </Dialog>
-
-      <QuickAddCustomer
-        open={newCustomerOpen}
-        onOpenChange={setNewCustomerOpen}
-        onCreate={(c) => {
-          setCustomer(c);
-          if (c.isWholesale) setIsWholesale(true);
-          setNewCustomerOpen(false);
-        }}
-      />
-
       <Dialog open={payOpen} onOpenChange={setPayOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Payment</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-blue-600 text-primary-foreground">
+                <CheckCircle2 className="h-4 w-4" />
+              </span>
+              Complete sale
+            </DialogTitle>
             <DialogDescription>
-              Total: <span className="font-bold text-foreground">{formatCurrency(total)}</span>
+              Total:{" "}
+              <span className="font-bold text-foreground text-base">{formatCurrency(total)}</span>
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-2">
-              {PAYMENT_METHODS.map((m) => {
-                const Icon = PAYMENT_ICONS[m];
-                return (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => setPaymentMethod(m)}
-                    className={`border rounded-md p-3 text-left transition ${
-                      paymentMethod === m
-                        ? "border-primary bg-primary/5"
-                        : "hover:border-foreground/30"
-                    }`}
-                  >
-                    <Icon className="h-4 w-4 mb-1.5" />
-                    <p className="text-xs font-semibold">{PAYMENT_METHOD_LABELS[m]}</p>
-                  </button>
-                );
-              })}
+          <div className="space-y-4">
+            <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                <Tag className="h-3 w-3" /> Customer (optional)
+              </p>
+              <div className="space-y-1.5">
+                <div className="relative">
+                  <User className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder="Customer name (leave blank for walk-in)"
+                    className="h-9 pl-8 text-sm"
+                    autoFocus
+                  />
+                </div>
+                <div className="relative">
+                  <Phone className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    placeholder="Phone number (optional)"
+                    className="h-9 pl-8 text-sm"
+                    inputMode="tel"
+                  />
+                </div>
+              </div>
             </div>
+
             <div>
-              <Label className="text-xs">Amount Paid</Label>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                Payment method
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {PAYMENT_METHODS.map((m) => {
+                  const Icon = PAYMENT_ICONS[m];
+                  const active = paymentMethod === m;
+                  return (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setPaymentMethod(m)}
+                      className={`relative overflow-hidden border rounded-lg p-3 text-left transition ${
+                        active
+                          ? "border-primary ring-2 ring-primary/30"
+                          : "hover:border-foreground/30"
+                      }`}
+                    >
+                      {active && (
+                        <div
+                          className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${PAYMENT_ACCENT[m]} opacity-10`}
+                        />
+                      )}
+                      <div className="relative">
+                        <div
+                          className={`h-7 w-7 rounded-md flex items-center justify-center mb-1.5 ${
+                            active
+                              ? `bg-gradient-to-br ${PAYMENT_ACCENT[m]} text-white`
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          <Icon className="h-3.5 w-3.5" />
+                        </div>
+                        <p className="text-xs font-semibold leading-tight">
+                          {PAYMENT_METHOD_LABELS[m]}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs">Amount paid</Label>
               <Input
                 type="number"
                 step="0.01"
                 value={amountPaid}
                 onChange={(e) => setAmountPaid(e.target.value)}
-                className="h-11 text-lg font-bold"
-                autoFocus
+                className="h-12 text-lg font-bold"
               />
+              <div className="grid grid-cols-4 gap-1.5 mt-2">
+                {[total, Math.ceil(total / 100) * 100, Math.ceil(total / 500) * 500, Math.ceil(total / 1000) * 1000]
+                  .filter((v, i, arr) => arr.indexOf(v) === i)
+                  .map((v, i) => (
+                    <Button
+                      key={i}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAmountPaid(v.toFixed(2))}
+                      className="h-9 text-xs"
+                    >
+                      {v.toFixed(0)}
+                    </Button>
+                  ))}
+              </div>
             </div>
-            <div className="grid grid-cols-4 gap-2">
-              {[total, total + 10, total + 50, total + 100].map((v, i) => (
-                <Button
-                  key={i}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setAmountPaid(v.toFixed(2))}
-                >
-                  {v.toFixed(0)}
-                </Button>
-              ))}
-            </div>
-            <div className="bg-muted/50 rounded p-3 text-sm space-y-1">
+
+            <div className="rounded-lg border bg-gradient-to-br from-muted/50 to-card p-3 text-sm space-y-1">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Total</span>
                 <span className="font-medium">{formatCurrency(total)}</span>
@@ -573,89 +554,25 @@ export function POSClient({ taxRate }: { taxRate: number }) {
                 <span className="text-muted-foreground">Paid</span>
                 <span className="font-medium">{formatCurrency(paid)}</span>
               </div>
-              <div className="flex justify-between font-bold border-t pt-1">
+              <div className="flex justify-between font-bold border-t pt-1.5 mt-1.5">
                 <span>Change</span>
-                <span className={change < 0 ? "text-destructive" : "text-success"}>
+                <span className={change < 0 ? "text-destructive" : "text-emerald-600 dark:text-emerald-400"}>
                   {formatCurrency(Math.max(0, change))}
                 </span>
               </div>
             </div>
+
             <Button
-              className="w-full h-11"
+              className="w-full h-12 text-base font-semibold shadow-lg shadow-primary/20"
               onClick={handleCompleteSale}
               loading={submitting}
               disabled={paid < total}
             >
-              Complete Sale
+              <CheckCircle2 className="h-4 w-4" /> Complete sale · {formatCurrency(total)}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
     </div>
-  );
-}
-
-function QuickAddCustomer({
-  open,
-  onOpenChange,
-  onCreate,
-}: {
-  open: boolean;
-  onOpenChange: (b: boolean) => void;
-  onCreate: (c: Customer) => void;
-}) {
-  const [name, setName] = React.useState("");
-  const [phone, setPhone] = React.useState("");
-  const [isWholesale, setIsWholesale] = React.useState(false);
-  const [submitting, setSubmitting] = React.useState(false);
-
-  const submit = async () => {
-    if (!name || !phone) return toast.error("Name and phone required");
-    setSubmitting(true);
-    try {
-      const res = await createCustomer({
-        name,
-        phone,
-        isWholesale,
-      });
-      if (res.success && res.id) {
-        toast.success("Customer added");
-        onCreate({ _id: res.id, name, phone, isWholesale });
-        setName("");
-        setPhone("");
-        setIsWholesale(false);
-      } else {
-        toast.error("Failed to create");
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Add Customer</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-3">
-          <div>
-            <Label>Name *</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus />
-          </div>
-          <div>
-            <Label>Phone *</Label>
-            <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
-          </div>
-          <div className="flex items-center gap-2">
-            <Switch checked={isWholesale} onCheckedChange={setIsWholesale} />
-            <Label className="cursor-pointer">Wholesale customer</Label>
-          </div>
-          <Button className="w-full" onClick={submit} loading={submitting}>
-            Add Customer
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
   );
 }
