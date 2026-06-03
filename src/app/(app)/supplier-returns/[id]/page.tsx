@@ -147,7 +147,7 @@ export default async function SupplierReturnDetailPage({ params }: PageProps) {
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm truncate">{item.productName}</p>
                       <p className="text-[11px] text-muted-foreground">
-                        {item.productCode} · {item.sku}
+                        {item.productCode}
                       </p>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <span className="text-[10px] text-muted-foreground">

@@ -25,9 +25,11 @@ export default async function NewStockEntryPage() {
           _id: string;
           name: string;
           productCode: string;
-          sku: string;
-          costPrice: number;
+          price: number;
+          orientation: "SINGLE" | "LEFT_RIGHT";
           quantity: number;
+          quantityLeft: number;
+          quantityRight: number;
           reorderLevel: number;
         }>}
         suppliers={suppliers as Array<{

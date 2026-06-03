@@ -42,9 +42,11 @@ interface ProductOption {
   _id: string;
   name: string;
   productCode: string;
-  sku: string;
-  costPrice: number;
+  price: number;
+  orientation: "SINGLE" | "LEFT_RIGHT";
   quantity: number;
+  quantityLeft: number;
+  quantityRight: number;
   reorderLevel: number;
 }
 
@@ -64,9 +66,9 @@ interface ShopOption {
 
 type EditableLine = {
   product: string;
+  side: "SINGLE" | "LEFT" | "RIGHT";
   quantity: number;
   unitCost: number;
-  updateCostPrice: boolean;
 };
 
 type Mode = "create" | "edit";
@@ -111,9 +113,9 @@ export function StockEntryForm({
       paymentMethod: defaultValues?.paymentMethod,
       amountPaid: defaultValues?.amountPaid ?? 0,
       dueDate: defaultValues?.dueDate,
-      lineItems: defaultValues?.lineItems ?? [
-        { product: "", quantity: 1, unitCost: 0, updateCostPrice: false },
-      ],
+      lineItems:
+        defaultValues?.lineItems ??
+        [{ product: "", side: "SINGLE", quantity: 1, unitCost: 0 }],
     },
   });
 
@@ -156,8 +158,7 @@ export function StockEntryForm({
       .filter(
         (p) =>
           p.name.toLowerCase().includes(q) ||
-          p.productCode.toLowerCase().includes(q) ||
-          p.sku.toLowerCase().includes(q)
+          p.productCode.toLowerCase().includes(q)
       )
       .slice(0, 30);
   }, [productSearch, products]);
@@ -171,23 +172,26 @@ export function StockEntryForm({
       toast.error(`${product.name} is already in the list`);
       return;
     }
+    const nextSide: EditableLine["side"] =
+      product.orientation === "LEFT_RIGHT" ? "LEFT" : "SINGLE";
+
     update(index, {
       product: productId,
+      side: nextSide,
       quantity: existing?.quantity && existing.quantity > 0 ? existing.quantity : 1,
-      unitCost: product.costPrice,
-      updateCostPrice: existing?.updateCostPrice ?? false,
+      unitCost: existing?.unitCost ?? 0,
     });
     setPickerOpenFor(null);
     setProductSearch("");
   }
 
   function addEmptyRow() {
-    append({ product: "", quantity: 1, unitCost: 0, updateCostPrice: false });
+    append({ product: "", side: "SINGLE", quantity: 1, unitCost: 0 });
   }
 
   function removeRow(index: number) {
     if (fields.length === 1) {
-      update(0, { product: "", quantity: 1, unitCost: 0, updateCostPrice: false });
+      update(0, { product: "", side: "SINGLE", quantity: 1, unitCost: 0 });
       return;
     }
     remove(index);
@@ -408,14 +412,17 @@ export function StockEntryForm({
                                     onClick={() => selectProduct(index, p._id)}
                                     className="w-full text-left px-3 py-2 text-xs hover:bg-accent/50 disabled:opacity-40 disabled:hover:bg-transparent flex items-center justify-between gap-2 border-b border-border/30 last:border-0"
                                   >
-                                    <span className="min-w-0 flex-1">
-                                      <span className="font-medium block truncate">
-                                        {p.name}
+                                      <span className="min-w-0 flex-1">
+                                        <span className="font-medium block truncate">
+                                          {p.name}
+                                        </span>
+                                        <span className="text-muted-foreground">
+                                          {p.productCode} · stock{" "}
+                                          {p.orientation === "LEFT_RIGHT"
+                                            ? `${p.quantityLeft}L / ${p.quantityRight}R`
+                                            : `${p.quantity}`}
+                                        </span>
                                       </span>
-                                      <span className="text-muted-foreground">
-                                        {p.productCode} · {p.sku} · stock {p.quantity}
-                                      </span>
-                                    </span>
                                     {used && <Badge variant="outline">Added</Badge>}
                                   </button>
                                 );
@@ -427,13 +434,23 @@ export function StockEntryForm({
 
                       {product && (
                         <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1.5">
-                          <span>Current stock: {product.quantity}</span>
+                          <span>
+                            Current stock:{" "}
+                            {product.orientation === "LEFT_RIGHT"
+                              ? product.quantityLeft + product.quantityRight
+                              : product.quantity}
+                          </span>
                           {statusBadge && (
                             <Badge
                               variant={statusBadge.variant}
                               className="text-[9px] h-3.5 px-1"
                             >
-                              After: {product.quantity + (Number(li?.quantity) || 0)}
+                              After:{" "}
+                              {product.orientation === "LEFT_RIGHT"
+                                ? product.quantityLeft +
+                                  product.quantityRight +
+                                  (Number(li?.quantity) || 0)
+                                : product.quantity + (Number(li?.quantity) || 0)}
                             </Badge>
                           )}
                         </p>
@@ -474,17 +491,27 @@ export function StockEntryForm({
                       </div>
                     </div>
 
-                    <div className="pt-6">
-                      <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer select-none">
-                        <Checkbox
-                          checked={Boolean(li?.updateCostPrice)}
-                          onCheckedChange={(c) =>
-                            update(index, { ...li, updateCostPrice: Boolean(c) })
+                    {product?.orientation === "LEFT_RIGHT" && (
+                      <div>
+                        <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                          Side
+                        </Label>
+                        <Select
+                          value={li?.side ?? "LEFT"}
+                          onValueChange={(v) =>
+                            update(index, { ...li, side: v as any })
                           }
-                        />
-                        <span>Update price</span>
-                      </label>
-                    </div>
+                        >
+                          <SelectTrigger className="mt-1 h-9">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="LEFT">Left</SelectItem>
+                            <SelectItem value="RIGHT">Right</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
 
                     <div className="pt-5">
                       <Button
@@ -511,7 +538,7 @@ export function StockEntryForm({
             })}
           </div>
 
-          {errors.lineItems?.root && (
+          {errors.lineItems?.root?.message && (
             <p className="text-xs text-destructive">{errors.lineItems.root.message}</p>
           )}
           {!errors.lineItems && (lineItems || []).every((li) => !li.product) && (

@@ -1,21 +1,49 @@
 import mongoose, { Schema, type Document, type Model } from "mongoose";
 
 export type StockPaymentStatus = "PAID" | "PARTIAL" | "PENDING" | "UNPAID";
-export type StockPaymentMethod = "CASH" | "BANK_TRANSFER" | "MOBILE_MONEY" | "CHEQUE" | "CREDIT";
+export type StockPaymentMethod =
+  | "CASH"
+  | "BANK_TRANSFER"
+  | "MOBILE_MONEY"
+  | "CHEQUE"
+  | "CREDIT";
 export type StockEntryStatus = "RECEIVED" | "PENDING" | "CANCELLED";
+
+export type StockLineSide = "LEFT" | "RIGHT" | "SINGLE";
 
 export interface IStockLineItem {
   product: mongoose.Types.ObjectId;
   productName: string;
   productCode: string;
-  sku: string;
+
+  /**
+   * Used only for LEFT_RIGHT products. For SINGLE products it will be "SINGLE".
+   */
+  side: StockLineSide;
+
+  /**
+   * For SINGLE products this is the increment quantity.
+   * For LEFT_RIGHT products it is the increment quantity for the chosen side.
+   */
   quantity: number;
+
+  /**
+   * Kept for costing on intake.
+   */
   unitCost: number;
   totalCost: number;
+
+  /**
+   * For SINGLE products it mirrors previousQuantity/newQuantity.
+   * For LEFT_RIGHT products it can be derived from side-specific previous/new.
+   */
   previousQuantity: number;
   newQuantity: number;
-  previousCostPrice?: number;
-  newCostPrice?: number;
+
+  previousLeftQuantity?: number;
+  newLeftQuantity?: number;
+  previousRightQuantity?: number;
+  newRightQuantity?: number;
 }
 
 export interface IStockEntry extends Document {
@@ -49,19 +77,31 @@ export interface IStockEntry extends Document {
   updatedAt: Date;
 }
 
-const StockLineItemSchema = new Schema<IStockLineItem>(
+const StockLineItemSchema = new Schema(
   {
     product: { type: Schema.Types.ObjectId, ref: "Product", required: true },
     productName: { type: String, required: true },
     productCode: { type: String, required: true },
-    sku: { type: String, required: true },
-    quantity: { type: Number, required: true, min: 1 },
+
+    side: {
+      type: String,
+      enum: ["LEFT", "RIGHT", "SINGLE"],
+      required: true,
+      index: true,
+    },
+
+    quantity: { type: Number, required: true, min: 0 },
+
     unitCost: { type: Number, required: true, min: 0 },
     totalCost: { type: Number, required: true, min: 0 },
+
     previousQuantity: { type: Number, required: true, min: 0 },
     newQuantity: { type: Number, required: true, min: 0 },
-    previousCostPrice: { type: Number },
-    newCostPrice: { type: Number },
+
+    previousLeftQuantity: { type: Number, min: 0 },
+    newLeftQuantity: { type: Number, min: 0 },
+    previousRightQuantity: { type: Number, min: 0 },
+    newRightQuantity: { type: Number, min: 0 },
   },
   { _id: false }
 );
@@ -73,7 +113,11 @@ const StockEntrySchema = new Schema<IStockEntry>(
     supplierName: { type: String, trim: true, index: true },
     shop: { type: Schema.Types.ObjectId, ref: "Shop", index: true },
     shopName: { type: String, trim: true },
-    lineItems: { type: [StockLineItemSchema], required: true, validate: (v: IStockLineItem[]) => v.length > 0 },
+    lineItems: {
+      type: [StockLineItemSchema],
+      required: true,
+      validate: (v: IStockLineItem[]) => v.length > 0,
+    },
     totalItems: { type: Number, required: true, min: 1, default: 1 },
     totalQuantity: { type: Number, required: true, min: 1, default: 0 },
     totalCost: { type: Number, required: true, min: 0, default: 0 },
@@ -119,4 +163,5 @@ StockEntrySchema.index({ "lineItems.product": 1 });
 StockEntrySchema.index({ referenceNumber: "text", invoiceNumber: "text", notes: "text" });
 
 export const StockEntry: Model<IStockEntry> =
-  mongoose.models.StockEntry || mongoose.model<IStockEntry>("StockEntry", StockEntrySchema);
+  mongoose.models.StockEntry ||
+  mongoose.model<IStockEntry>("StockEntry", StockEntrySchema);

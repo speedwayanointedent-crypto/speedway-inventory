@@ -41,6 +41,7 @@ export default async function EditStockEntryPage({ params }: Props) {
     dueDate?: string;
     lineItems: Array<{
       product: string;
+      side: "SINGLE" | "LEFT" | "RIGHT";
       quantity: number;
       unitCost: number;
     }>;
@@ -78,18 +79,20 @@ export default async function EditStockEntryPage({ params }: Props) {
           dueDate: e.dueDate ? new Date(e.dueDate).toISOString().slice(0, 10) : undefined,
           lineItems: e.lineItems.map((li) => ({
             product: li.product,
+            side: li.side,
             quantity: li.quantity,
             unitCost: li.unitCost,
-            updateCostPrice: false,
           })),
         }}
         products={products as Array<{
           _id: string;
           name: string;
           productCode: string;
-          sku: string;
-          costPrice: number;
+          price: number;
+          orientation: "SINGLE" | "LEFT_RIGHT";
           quantity: number;
+          quantityLeft: number;
+          quantityRight: number;
           reorderLevel: number;
         }>}
         suppliers={suppliers as Array<{

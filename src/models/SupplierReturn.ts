@@ -4,7 +4,6 @@ export interface ISupplierReturnItem {
   product: Types.ObjectId;
   productName: string;
   productCode: string;
-  sku: string;
   quantity: number;
   unitCost: number;
   totalCost: number;
@@ -56,7 +55,6 @@ const SupplierReturnItemSchema = new Schema<ISupplierReturnItem>(
     product: { type: Schema.Types.ObjectId, ref: "Product", required: true },
     productName: { type: String, required: true },
     productCode: { type: String, default: "" },
-    sku: { type: String, default: "" },
     quantity: { type: Number, required: true, min: 1 },
     unitCost: { type: Number, required: true, min: 0 },
     totalCost: { type: Number, required: true, min: 0 },

@@ -10,11 +10,7 @@ import {
   Building2,
   MapPin,
   Truck,
-  Barcode,
   Car,
-  TrendingUp,
-  Wallet,
-  CircleDollarSign,
   ShoppingBag,
   Calendar,
   Hash,
@@ -25,7 +21,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { formatCurrency, formatDate, getStockStatus, calculateProfit } from "@/lib/utils";
+import { formatCurrency, formatDate, getStockStatus } from "@/lib/utils";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -43,7 +39,6 @@ export default async function ProductDetailPage({ params }: Props) {
   if (!product) notFound();
 
   const status = getStockStatus(product.quantity as number, product.reorderLevel as number);
-  const profit = calculateProfit(product.sellingPrice as number, product.costPrice as number);
   const category = product.category as { name?: string } | undefined;
   const supplier = product.supplier as { companyName?: string } | undefined;
   const shop = product.shop as { name?: string; code?: string; city?: string; address?: string } | undefined;
@@ -68,7 +63,7 @@ export default async function ProductDetailPage({ params }: Props) {
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground font-mono truncate">
-              {product.productCode as string} · {product.sku as string}
+              {product.productCode as string}
             </p>
           </div>
         </div>
@@ -110,39 +105,11 @@ export default async function ProductDetailPage({ params }: Props) {
             <div className="p-5 sm:p-6 space-y-4">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  Selling price
+                  Price
                 </p>
                 <p className="text-3xl sm:text-4xl font-bold tracking-tight text-primary mt-1">
-                  {formatCurrency(product.sellingPrice as number)}
+                  {formatCurrency(product.price as number)}
                 </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  per {String(product.unitType || "unit").toLowerCase()}
-                </p>
-              </div>
-              <Separator />
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <MiniStat
-                  icon={CircleDollarSign}
-                  label="Cost"
-                  value={formatCurrency(product.costPrice as number)}
-                />
-                <MiniStat
-                  icon={Tag}
-                  label="Wholesale"
-                  value={formatCurrency(product.wholesalePrice as number)}
-                />
-                <MiniStat
-                  icon={TrendingUp}
-                  label="Profit/unit"
-                  value={formatCurrency(profit.profit)}
-                  accent={profit.profit > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}
-                />
-                <MiniStat
-                  icon={TrendingUp}
-                  label="Margin"
-                  value={`${profit.margin.toFixed(1)}%`}
-                  accent={profit.margin > 20 ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}
-                />
               </div>
               <Separator />
               <div className="grid grid-cols-2 gap-3 text-xs">
@@ -150,7 +117,7 @@ export default async function ProductDetailPage({ params }: Props) {
                   <Box className="h-3.5 w-3.5" /> In stock
                 </div>
                 <div className="text-right font-semibold">
-                  {product.quantity as number} {String(product.unitType || "").toLowerCase()}
+                  {product.quantity as number}
                 </div>
                 <div className="flex items-center gap-1.5 text-muted-foreground">
                   <Hash className="h-3.5 w-3.5" /> Reorder at
@@ -181,7 +148,6 @@ export default async function ProductDetailPage({ params }: Props) {
               {Boolean(product.brand) && (
                 <DetailField icon={Building2} label="Brand" value={String(product.brand)} />
               )}
-              <DetailField icon={Box} label="Unit type" value={String(product.unitType)} />
               {shop && (
                 <DetailField
                   icon={Store}
@@ -198,9 +164,6 @@ export default async function ProductDetailPage({ params }: Props) {
               )}
               {supplier?.companyName && (
                 <DetailField icon={Truck} label="Supplier" value={supplier.companyName} />
-              )}
-              {Boolean(product.barcode) && (
-                <DetailField icon={Barcode} label="Barcode" value={String(product.barcode)} mono />
               )}
               {Array.isArray(product.vehicleCompatibility) &&
                 (product.vehicleCompatibility as string[]).length > 0 && (
@@ -234,7 +197,7 @@ export default async function ProductDetailPage({ params }: Props) {
                   {product.quantity as number}
                 </span>
                 <span className="text-sm text-muted-foreground">
-                  {String(product.unitType).toLowerCase()}
+                  units
                 </span>
               </div>
               <StockBar
@@ -251,23 +214,7 @@ export default async function ProductDetailPage({ params }: Props) {
             <CardContent className="p-5 space-y-3">
               <h3 className="text-sm font-semibold">Pricing</h3>
               <div className="space-y-2 text-sm">
-                <PriceRow label="Cost" value={formatCurrency(product.costPrice as number)} />
-                <PriceRow
-                  label="Selling"
-                  value={formatCurrency(product.sellingPrice as number)}
-                  highlight
-                />
-                <PriceRow
-                  label="Wholesale"
-                  value={formatCurrency(product.wholesalePrice as number)}
-                />
-                <Separator />
-                <PriceRow
-                  label="Profit / unit"
-                  value={formatCurrency(profit.profit)}
-                  tone={profit.profit > 0 ? "success" : "destructive"}
-                />
-                <PriceRow label="Margin" value={`${profit.margin.toFixed(1)}%`} />
+                <PriceRow label="Price" value={formatCurrency(product.price as number)} highlight />
               </div>
             </CardContent>
           </Card>

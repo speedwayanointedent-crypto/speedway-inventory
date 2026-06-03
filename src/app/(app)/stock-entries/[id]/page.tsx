@@ -284,7 +284,7 @@ export default async function StockEntryDetailPage({ params }: Props) {
                 <TableCell>
                   <p className="text-sm font-medium">{li.productName}</p>
                   <p className="text-[10px] text-muted-foreground font-mono">
-                    {li.productCode} · {li.sku}
+                    {li.productCode}
                   </p>
                 </TableCell>
                 <TableCell className="text-center font-semibold text-emerald-600">

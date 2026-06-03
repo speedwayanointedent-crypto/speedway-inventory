@@ -17,16 +17,22 @@ export async function GET(req: Request) {
   const products = await Product.find().populate("category", "name").lean();
 
   if (format === "pdf") {
-    const headers = ["Code", "Name", "Category", "Stock", "Cost", "Selling", "Value"];
-    const rows = products.map((p) => [
-      p.productCode,
-      p.name,
-      (p.category as { name?: string })?.name || "",
-      String(p.quantity),
-      formatCurrency(p.costPrice),
-      formatCurrency(p.sellingPrice),
-      formatCurrency(p.quantity * p.sellingPrice),
-    ]);
+    const headers = ["Code", "Name", "Category", "Stock", "Price", "Value"];
+    const rows: Array<[string, string, string, number, string, string]> = products.map((p) => {
+      const stock =
+        p.orientation === "LEFT_RIGHT"
+          ? (p.quantityLeft ?? 0) + (p.quantityRight ?? 0)
+          : p.quantity;
+
+      return [
+        p.productCode,
+        p.name,
+        ((p.category as { name?: string })?.name as string) || "",
+        stock,
+        formatCurrency(p.price),
+        formatCurrency(stock * p.price),
+      ];
+    });
     const pdf = generateReportPDF("Inventory Report", headers, rows);
     return new NextResponse(Buffer.from(pdf), {
       headers: {
@@ -44,25 +50,28 @@ export async function GET(req: Request) {
     { header: "Category", key: "category", width: 18 },
     { header: "Stock", key: "stock", width: 10 },
     { header: "Reorder Level", key: "reorder", width: 14 },
-    { header: "Cost Price", key: "cost", width: 12 },
-    { header: "Selling Price", key: "sell", width: 14 },
-    { header: "Wholesale", key: "wh", width: 14 },
+    { header: "Price", key: "price", width: 12 },
     { header: "Stock Value", key: "val", width: 14 },
+    { header: "Orientation", key: "orientation", width: 14 },
     { header: "Status", key: "status", width: 12 },
   ];
   ws.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
   ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF2563EB" } };
   for (const p of products) {
+    const stock =
+      p.orientation === "LEFT_RIGHT"
+        ? (p.quantityLeft ?? 0) + (p.quantityRight ?? 0)
+        : p.quantity;
+
     ws.addRow({
       code: p.productCode,
       name: p.name,
       category: (p.category as { name?: string })?.name || "",
-      stock: p.quantity,
+      stock,
       reorder: p.reorderLevel,
-      cost: p.costPrice,
-      sell: p.sellingPrice,
-      wh: p.wholesalePrice,
-      val: p.quantity * p.sellingPrice,
+      price: p.price,
+      val: stock * p.price,
+      orientation: p.orientation,
       status: p.status,
     });
   }

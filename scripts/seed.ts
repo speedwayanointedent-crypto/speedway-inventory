@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
+ /* eslint-disable @typescript-eslint/no-require-imports */
 if (!process.env.MONGODB_URI) {
   console.error("❌  MONGODB_URI is not set.");
   console.error("    Create a .env.local file in the project root with:");
@@ -132,38 +132,44 @@ const DEMO_CUSTOMERS = [
   { name: "Yaa Asantewa", phone: "+233 24 100 0010", email: "yaa@example.com", address: "Airport Residential", companyName: "Asantewa Co." },
 ];
 
-const PRODUCT_NAMES: Array<{ name: string; category: string; brand: string; vehicle: string[]; cost: number; sell: number; qty: number }> = [
-  { name: "Front Brake Pad Set", category: "Brakes", brand: "Bosch", vehicle: ["Toyota Camry 2007-2017", "Toyota Corolla 2009-2019"], cost: 45, sell: 80, qty: 50 },
-  { name: "Rear Brake Disc", category: "Brakes", brand: "Brembo", vehicle: ["Honda Accord 2008-2015"], cost: 120, sell: 200, qty: 18 },
-  { name: "Brake Caliper Front", category: "Brakes", brand: "TRW", vehicle: ["Hyundai Elantra 2011-2016"], cost: 180, sell: 320, qty: 8 },
-  { name: "Engine Oil Filter", category: "Engine Parts", brand: "Mann", vehicle: ["Universal"], cost: 12, sell: 25, qty: 200 },
-  { name: "Air Filter", category: "Engine Parts", brand: "K&N", vehicle: ["Toyota Hilux 2015-2023"], cost: 28, sell: 55, qty: 65 },
-  { name: "Spark Plug Set (4)", category: "Engine Parts", brand: "NGK", vehicle: ["Nissan Altima 2013-2018"], cost: 35, sell: 65, qty: 75 },
-  { name: "Head Gasket", category: "Engine Parts", brand: "Cometic", vehicle: ["Toyota Corolla 2009-2019"], cost: 85, sell: 150, qty: 12 },
-  { name: "Front Shock Absorber", category: "Suspension", brand: "KYB", vehicle: ["Toyota Camry 2007-2017"], cost: 95, sell: 165, qty: 22 },
-  { name: "Coil Spring Rear", category: "Suspension", brand: "Eibach", vehicle: ["Honda Civic 2016-2021"], cost: 70, sell: 130, qty: 15 },
-  { name: "Strut Mount", category: "Suspension", brand: "Moog", vehicle: ["Hyundai Tucson 2010-2015"], cost: 40, sell: 75, qty: 30 },
-  { name: "12V Car Battery 60Ah", category: "Electrical", brand: "Bosch", vehicle: ["Universal"], cost: 320, sell: 480, qty: 14 },
-  { name: "Alternator Assembly", category: "Electrical", brand: "Denso", vehicle: ["Toyota Corolla 2009-2019"], cost: 480, sell: 750, qty: 6 },
-  { name: "Starter Motor", category: "Electrical", brand: "Valeo", vehicle: ["Honda Accord 2008-2015"], cost: 420, sell: 680, qty: 5 },
-  { name: "Clutch Kit Complete", category: "Transmission", brand: "Exedy", vehicle: ["Toyota Hilux 2005-2015"], cost: 380, sell: 620, qty: 9 },
-  { name: "Manual Transmission Oil 1L", category: "Transmission", brand: "Castrol", vehicle: ["Universal"], cost: 25, sell: 45, qty: 80 },
-  { name: "Side Mirror Left", category: "Body Parts", brand: "Depo", vehicle: ["Toyota Corolla 2009-2019"], cost: 95, sell: 180, qty: 11 },
-  { name: "Headlight Assembly", category: "Body Parts", brand: "Hella", vehicle: ["Honda Civic 2016-2021"], cost: 320, sell: 520, qty: 7 },
-  { name: "Front Bumper", category: "Body Parts", brand: "OEM", vehicle: ["Hyundai Elantra 2017-2020"], cost: 380, sell: 620, qty: 4 },
-  { name: "205/55R16 Tyre", category: "Tyres & Wheels", brand: "Michelin", vehicle: ["Universal"], cost: 220, sell: 350, qty: 32 },
-  { name: "Alloy Wheel 17\"", category: "Tyres & Wheels", brand: "BBS", vehicle: ["Universal"], cost: 380, sell: 580, qty: 16 },
-  { name: "Engine Oil 5W-30 4L", category: "Oils & Fluids", brand: "Mobil 1", vehicle: ["Universal"], cost: 95, sell: 145, qty: 60 },
-  { name: "Brake Fluid DOT-4 1L", category: "Oils & Fluids", brand: "Castrol", vehicle: ["Universal"], cost: 18, sell: 32, qty: 90 },
-  { name: "Coolant 5L", category: "Oils & Fluids", brand: "Prestone", vehicle: ["Universal"], cost: 55, sell: 90, qty: 35 },
-  { name: "Floor Mat Set", category: "Accessories", brand: "3D Maxpider", vehicle: ["Toyota Camry 2007-2017"], cost: 75, sell: 130, qty: 24 },
-  { name: "Leather Seat Cover", category: "Accessories", brand: "CoverKing", vehicle: ["Universal"], cost: 220, sell: 380, qty: 10 },
-  { name: "Hydraulic Jack 2T", category: "Tools", brand: "Stanley", vehicle: ["Universal"], cost: 95, sell: 160, qty: 12 },
-  { name: "OBD2 Scanner", category: "Tools", brand: "Autel", vehicle: ["Universal"], cost: 280, sell: 480, qty: 6 },
-  { name: "Socket Wrench Set", category: "Tools", brand: "Craftsman", vehicle: ["Universal"], cost: 65, sell: 110, qty: 18 },
-  { name: "Wiper Blade Set", category: "Body Parts", brand: "Bosch", vehicle: ["Universal"], cost: 22, sell: 45, qty: 55 },
-  { name: "Cabin Air Filter", category: "Engine Parts", brand: "Mann", vehicle: ["Toyota Corolla 2009-2019"], cost: 15, sell: 30, qty: 70 },
+type ProductOrientation = "SINGLE" | "LEFT_RIGHT";
+
+type ProductSeed = {
+  name: string;
+  category: string;
+  brand: string;
+  vehicle: string[];
+  sell: number;
+  /**
+   * For SINGLE products: total quantity.
+   * For LEFT_RIGHT products: total quantity (fallback if leftQty/rightQty are not provided).
+   */
+  qty: number;
+  orientation?: ProductOrientation;
+  /**
+   * For LEFT_RIGHT products: exact left quantity.
+   */
+  leftQty?: number;
+  /**
+   * For LEFT_RIGHT products: exact right quantity.
+   */
+  rightQty?: number;
+};
+
+const PRODUCT_NAMES: ProductSeed[] = [
+  { name: "Front Brake Pad Set", category: "Brakes", brand: "Bosch", vehicle: ["Toyota Camry 2007-2017", "Toyota Corolla 2009-2019"], sell: 80, qty: 50, orientation: "SINGLE" },
+  { name: "Rear Brake Dtomaisc", category: "Brakes", brand: "Brembo", vehicle: ["Honda Accord 2008-2015"], sell: 200, qty: 18, orientation: "SINGLE" },
+  { name: "Brake Caliper Front", category: "Brakes", brand: "TRW", vehicle: ["Hyundai Elantra 2011-2016"], sell: 320, qty: 8, orientation: "SINGLE" },
+  { name: "Engine Oil Filter", category: "Engine Parts", brand: "Mann", vehicle: ["Universal"], sell: 25, qty: 200, orientation: "SINGLE" },
+  { name: "Air Filter", category: "Engine Parts", brand: "K&N", vehicle: ["Toyota Hilux 2015-2023"], sell: 55, qty: 65, orientation: "SINGLE" },
+  { name: "Spark Plug Set (4)", category: "Engine Parts", brand: "NGK", vehicle: ["Nissan Altima 2013-2018"], sell: 65, qty: 75, orientation: "SINGLE" },
+  { name: "Head Gasket", category: "Engine Parts", brand: "Cometic", vehicle: ["Toyota Corolla 2009-2019"], sell: 150, qty: 12, orientation: "SINGLE" },
+  // LEFT_RIGHT: specify exact left/right quantities
+  { name: "Front Shock Absorber (L/R)", category: "Suspension", brand: "KYB", vehicle: ["Toyota Camry 2007-2017"], sell: 165, qty: 22, orientation: "LEFT_RIGHT", leftQty: 12, rightQty: 10 },
 ];
+
+const PAYMENT_METHODS = ["CASH", "MOBILE_MONEY", "BANK_TRANSFER"] as const;
+type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
 async function main() {
   console.log("🌱 Seeding database...");
@@ -174,22 +180,34 @@ async function main() {
     User.deleteMany({}),
     Category.deleteMany({}),
     Product.deleteMany({}),
-    Supplier.deleteMany({}),
-    Customer.deleteMany({}),
-    Sale.deleteMany({}),
-    InventoryTransaction.deleteMany({}),
-    Notification.deleteMany({}),
-    ActivityLog.deleteMany({}),
-    Settings.deleteMany({}),
     Shop.deleteMany({}),
   ]);
 
   console.log("→ Users");
   const adminPass = await bcrypt.hash("Admin@123456", 10);
   const staffPass = await bcrypt.hash("Staff@123456", 10);
+
   const [admin, staff] = await User.create([
-    { name: "Admin User", email: "admin@speedway.com", password: adminPass, role: "ADMIN", phone: "+233 24 000 0000", isActive: true },
-    { name: "Staff User", email: "staff@speedway.com", password: staffPass, role: "STAFF", phone: "+233 24 111 1111", isActive: true },
+    {
+      name: "Admin User",
+      email: "admin@speedway.com",
+      password: adminPass,
+      role: "ADMIN",
+      phone: "+233 24 000 0000",
+      status: "ACTIVE",
+      permissions: [],
+      isActive: true,
+    },
+    {
+      name: "Staff User",
+      email: "staff@speedway.com",
+      password: staffPass,
+      role: "STAFF",
+      phone: "+233 24 111 1111",
+      status: "ACTIVE",
+      permissions: [],
+      isActive: true,
+    },
   ]);
 
   console.log("→ Settings");
@@ -229,49 +247,95 @@ async function main() {
   const customers = await Customer.insertMany(DEMO_CUSTOMERS);
 
   console.log("→ Products");
+
+  // Drop legacy/removed unique index that may still exist in the database (e.g. { sku: 1 } with unique=true).
+  // Current Product schema no longer defines `sku`, but older deployments may have created a unique index on it.
+  const productCollection = Product.collection;
+  const indexes = await productCollection.indexes();
+  const skuIndexes = indexes.filter(
+    (idx) => idx?.key && Object.keys(idx.key).some((k) => k === "sku")
+  );
+
+  for (const idx of skuIndexes) {
+    const indexName = idx?.name;
+    if (!indexName) continue;
+
+    try {
+      await productCollection.dropIndex(indexName);
+      console.log(`→ Dropped legacy index: ${indexName}`);
+    } catch (err) {
+      console.log(
+        `→ Could not drop index ${indexName} (continuing):`,
+        err instanceof Error ? err.message : err
+      );
+    }
+  }
+
   const products = await Product.insertMany(
-    PRODUCT_NAMES.map((p) => {
+    PRODUCT_NAMES.map((p, idx) => {
       const cat = categoryByName.get(p.category);
       const supplier = suppliers[Math.floor(Math.random() * suppliers.length)];
       const shop = shops[Math.floor(Math.random() * shops.length)];
+
       const aisle = ["A", "B", "C", "D"][Math.floor(Math.random() * 4)];
       const shelf = Math.floor(Math.random() * 6) + 1;
       const bin = Math.floor(Math.random() * 8) + 1;
+
+      const orientation = p.orientation ?? (idx % 5 === 0 ? "LEFT_RIGHT" : "SINGLE");
+      const images: string[] = [];
+
+      const quantityLeft =
+        orientation === "LEFT_RIGHT"
+          ? p.leftQty ?? Math.floor(p.qty / 2)
+          : 0;
+
+      const quantityRight =
+        orientation === "LEFT_RIGHT"
+          ? p.rightQty ?? p.qty - Math.floor(p.qty / 2)
+          : 0;
+
       return {
         name: p.name,
         productCode: `SW-${Math.floor(100000 + Math.random() * 900000)}`,
-        sku: `${p.category.slice(0, 3).toUpperCase()}-${Math.floor(10000 + Math.random() * 90000)}`,
         category: cat?._id,
         shop: shop._id,
         storageLocation: `Aisle ${aisle} · Shelf ${shelf} · Bin ${bin}`,
         brand: p.brand,
         vehicleCompatibility: p.vehicle,
-        costPrice: p.cost,
-        sellingPrice: p.sell,
-        wholesalePrice: Math.round(p.sell * 0.85 * 100) / 100,
-        quantity: p.qty,
-        reorderLevel: Math.max(5, Math.floor(p.qty * 0.2)),
-        unitType: p.name.includes("Set") ? "Set" : p.name.includes("1L") || p.name.includes("4L") || p.name.includes("5L") ? "Litre" : "Piece",
+        price: p.sell,
         supplier: supplier._id,
+        reorderLevel: Math.max(5, Math.floor(p.qty * 0.2)),
         status: "ACTIVE",
+        images,
+        orientation,
+        totalSold: 0,
         createdBy: admin._id,
+        quantity: orientation === "SINGLE" ? p.qty : 0,
+        quantityLeft,
+        quantityRight,
+        // storage handling
       };
     })
   );
 
   console.log("→ Inventory transactions");
   await InventoryTransaction.insertMany(
-    products.map((p) => ({
-      product: p._id,
-      productName: p.name,
-      type: "STOCK_IN",
-      previousQuantity: 0,
-      changeQuantity: p.quantity,
-      newQuantity: p.quantity,
-      reason: "Initial seed stock",
-      user: admin._id,
-      userName: admin.name,
-    }))
+    products.map((p) => {
+      const qty =
+        (p.quantity ?? 0) + (p.quantityLeft ?? 0) + (p.quantityRight ?? 0);
+
+      return {
+        product: p._id,
+        productName: p.name,
+        type: "STOCK_IN",
+        previousQuantity: 0,
+        changeQuantity: qty,
+        newQuantity: qty,
+        reason: "Initial seed stock",
+        user: admin._id,
+        userName: admin.name,
+      };
+    })
   );
 
   console.log("→ Sales (last 30 days)");
@@ -282,32 +346,57 @@ async function main() {
       const customer = customers[Math.floor(Math.random() * customers.length)];
       const cashier = Math.random() > 0.6 ? staff : admin;
       const numItems = Math.floor(Math.random() * 3) + 1;
-      const items: Array<{ product: typeof products[0]["_id"]; productName: string; productCode: string; quantity: number; unitPrice: number; costPrice: number; discount: number; subtotal: number }> = [];
+
+      const items: Array<{
+        product: typeof products[0]["_id"];
+        productName: string;
+        productCode: string;
+        quantity: number;
+        unitPrice: number;
+        costPrice: number;
+        discount: number;
+        subtotal: number;
+      }> = [];
+
       let subtotal = 0;
+
       for (let j = 0; j < numItems; j++) {
         const prod = products[Math.floor(Math.random() * products.length)];
         const qty = Math.floor(Math.random() * 3) + 1;
-        const useWholesale = customer.isWholesale && Math.random() > 0.4;
-        const price = useWholesale ? prod.wholesalePrice : prod.sellingPrice;
-        const lineSubtotal = price * qty;
+
+        // Current schema has a single `price` field.
+        const unitPrice = prod.price;
+
+        const lineSubtotal = unitPrice * qty;
+
         items.push({
           product: prod._id,
           productName: prod.name,
           productCode: prod.productCode,
           quantity: qty,
-          unitPrice: price,
-          costPrice: prod.costPrice,
+          unitPrice,
+          // If you later add explicit cost fields back to Product, update this.
+          costPrice: Math.round(unitPrice * 0.6 * 100) / 100,
           discount: 0,
           subtotal: lineSubtotal,
         });
+
         subtotal += lineSubtotal;
       }
+
       const tax = subtotal * 0.125;
       const total = subtotal + tax;
+
       const date = new Date();
       date.setDate(date.getDate() - day);
       date.setHours(9 + Math.floor(Math.random() * 9), Math.floor(Math.random() * 60));
-      const payment = ["CASH", "MOBILE_MONEY", "BANK_TRANSFER"][Math.floor(Math.random() * 3)] as "CASH" | "MOBILE_MONEY" | "BANK_TRANSFER";
+
+      const payment = [
+        "CASH",
+        "MOBILE_MONEY",
+        "BANK_TRANSFER",
+      ][Math.floor(Math.random() * 3)] as "CASH" | "MOBILE_MONEY" | "BANK_TRANSFER";
+
       salesToCreate.push({
         saleNumber: generateSaleNumber(),
         publicId: uuidv4(),
@@ -322,6 +411,7 @@ async function main() {
         amountPaid: total,
         change: 0,
         paymentMethod: payment,
+        payments: [{ method: payment, amount: total }],
         staff: cashier._id,
         staffName: cashier.name,
         status: "COMPLETED",

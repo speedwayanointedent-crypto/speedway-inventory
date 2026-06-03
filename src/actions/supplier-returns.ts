@@ -94,7 +94,6 @@ export async function createSupplierReturn(input: SupplierReturnInput) {
           product: product._id,
           productName: product.name,
           productCode: product.productCode,
-          sku: product.sku,
           quantity: item.quantity,
           unitCost: item.unitCost,
           totalCost: item.quantity * item.unitCost,

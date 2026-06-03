@@ -71,7 +71,7 @@ export async function getDashboardMetrics() {
   const topProducts = await Product.find({ status: "ACTIVE" })
     .sort({ totalSold: -1 })
     .limit(5)
-    .select("name totalSold quantity sellingPrice")
+    .select("name totalSold quantity price")
     .lean();
 
   const topCustomers = await Customer.find({ isActive: true })
@@ -108,8 +108,17 @@ export async function getDashboardMetrics() {
     {
       $group: {
         _id: null,
-        costValue: { $sum: { $multiply: ["$quantity", "$costPrice"] } },
-        sellingValue: { $sum: { $multiply: ["$quantity", "$sellingPrice"] } },
+        // With single-price model we keep "value" as price * quantity.
+        // If LEFT_RIGHT, quantityLeft/Right are used.
+        sellingValue: {
+          $sum: {
+            $cond: [
+              { $eq: ["$orientation", "LEFT_RIGHT"] },
+              { $multiply: ["$price", { $add: ["$quantityLeft", "$quantityRight"] }] },
+              { $multiply: ["$price", "$quantity"] },
+            ],
+          },
+        },
       },
     },
   ]);
@@ -214,7 +223,7 @@ export async function getDashboardMetrics() {
       totalProducts,
       lowStock,
       outOfStock,
-      value: inventoryValue[0] || { costValue: 0, sellingValue: 0 },
+      value: inventoryValue[0] || { sellingValue: 0 },
     },
     stock: {
       today: stockIntakeToday[0] || { entries: 0, quantity: 0, cost: 0 },
@@ -275,9 +284,12 @@ export async function getInventoryReport() {
     .lean();
   const totals = products.reduce(
     (acc, p) => {
-      acc.totalCost += p.quantity * p.costPrice;
-      acc.totalValue += p.quantity * p.sellingPrice;
-      acc.totalUnits += p.quantity;
+      const units =
+        p.orientation === "LEFT_RIGHT"
+          ? (p.quantityLeft ?? 0) + (p.quantityRight ?? 0)
+          : p.quantity;
+      acc.totalValue += units * p.price;
+      acc.totalUnits += units;
       return acc;
     },
     { totalCost: 0, totalValue: 0, totalUnits: 0 }
@@ -296,12 +308,16 @@ export async function getProfitReport(opts: { from: string; to: string }) {
     status: { $in: ["COMPLETED", "PARTIAL_REFUND"] },
   }).lean();
 
+  // With simplified pricing we can't compute historical cost unless kept on Sale items.
+  // Keep "profit" as revenue minus (if costPrice exists).
   let totalRevenue = 0;
   let totalCost = 0;
   for (const sale of sales) {
     for (const item of sale.items) {
       totalRevenue += item.subtotal;
-      totalCost += item.costPrice * item.quantity;
+      if ("costPrice" in item && typeof (item as any).costPrice === "number") {
+        totalCost += (item as any).costPrice * item.quantity;
+      }
     }
   }
   const grossProfit = totalRevenue - totalCost;

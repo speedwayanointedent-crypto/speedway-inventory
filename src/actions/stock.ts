@@ -87,25 +87,19 @@ export async function createStockEntry(input: StockEntryInput) {
         const product = productMap.get(item.product)!;
         const previousQuantity = product.quantity;
         const newQuantity = previousQuantity + item.quantity;
-        const previousCostPrice = product.costPrice;
         product.quantity = newQuantity;
-        if (item.updateCostPrice) {
-          product.costPrice = item.unitCost;
-        }
         await product.save({ session });
 
         lineItems.push({
           product: product._id,
           productName: product.name,
           productCode: product.productCode,
-          sku: product.sku,
+          side: item.side,
           quantity: item.quantity,
           unitCost: item.unitCost,
           totalCost: item.quantity * item.unitCost,
           previousQuantity,
           newQuantity,
-          previousCostPrice: item.updateCostPrice ? previousCostPrice : undefined,
-          newCostPrice: item.updateCostPrice ? item.unitCost : undefined,
         });
 
         await InventoryTransaction.create(
@@ -194,7 +188,7 @@ export async function createStockEntry(input: StockEntryInput) {
       _id: { $in: data.lineItems.map((i) => i.product) },
       $expr: { $lte: ["$quantity", "$reorderLevel"] },
     })
-      .select("name productCode quantity reorderLevel")
+    .select("name productCode price orientation quantity quantityLeft quantityRight reorderLevel")
       .lean();
     for (const p of stillLow) {
       await createNotification({
@@ -300,7 +294,6 @@ export async function updateStockEntry(id: string, input: StockEntryUpdateInput)
           } else if (product && !oldLi && newLi) {
             const previousQuantity = product.quantity;
             product.quantity = previousQuantity + newLi.quantity;
-            if (newLi.updateCostPrice) product.costPrice = newLi.unitCost;
             await product.save({ session });
             await InventoryTransaction.create(
               [
@@ -322,10 +315,9 @@ export async function updateStockEntry(id: string, input: StockEntryUpdateInput)
             );
           } else if (product && oldLi && newLi) {
             const diff = newLi.quantity - oldLi.quantity;
-            if (diff !== 0 || (newLi.updateCostPrice && newLi.unitCost !== oldLi.unitCost)) {
+            if (diff !== 0) {
               const previousQuantity = product.quantity;
               product.quantity = Math.max(0, previousQuantity + diff);
-              if (newLi.updateCostPrice) product.costPrice = newLi.unitCost;
               await product.save({ session });
               await InventoryTransaction.create(
                 [
@@ -356,13 +348,12 @@ export async function updateStockEntry(id: string, input: StockEntryUpdateInput)
             product: new mongoose.Types.ObjectId(li.product),
             productName: product?.name || "",
             productCode: product?.productCode || "",
-            sku: product?.sku || "",
+            side: li.side,
             quantity: li.quantity,
             unitCost: li.unitCost,
             totalCost: li.quantity * li.unitCost,
             previousQuantity,
             newQuantity: previousQuantity + li.quantity,
-            newCostPrice: li.updateCostPrice ? li.unitCost : undefined,
           };
         });
       }
@@ -931,7 +922,7 @@ export async function getStockEntryProducts() {
   await requirePermission(PERMISSIONS.VIEW_INVENTORY);
   await connectDB();
   const products = await Product.find({ status: "ACTIVE" })
-    .select("name productCode sku costPrice quantity reorderLevel")
+    .select("name productCode quantity reorderLevel")
     .sort({ name: 1 })
     .lean();
   return safeJSON<unknown[]>(products);
@@ -952,7 +943,6 @@ export async function getLowStockReport(opts?: {
     filter.$or = [
       { name: { $regex: opts.search, $options: "i" } },
       { productCode: { $regex: opts.search, $options: "i" } },
-      { sku: { $regex: opts.search, $options: "i" } },
       { brand: { $regex: opts.search, $options: "i" } },
     ];
   }
@@ -967,14 +957,8 @@ export async function getLowStockReport(opts?: {
   const outOfStock = products.filter((p) => p.quantity <= 0);
   const inStock = products.filter((p) => p.quantity > p.reorderLevel);
 
-  const estimatedReorderCost = lowStock.reduce(
-    (s, p) => s + (p.reorderLevel * 2 - p.quantity) * p.costPrice,
-    0
-  );
-  const outOfStockReorderCost = outOfStock.reduce(
-    (s, p) => s + p.reorderLevel * 2 * p.costPrice,
-    0
-  );
+  const estimatedReorderCost = 0;
+  const outOfStockReorderCost = 0;
 
   return {
     items: safeJSON<unknown[]>([...outOfStock, ...lowStock]),
@@ -1033,10 +1017,8 @@ export async function getLowStockNotifications() {
 
 export interface BulkImportRow {
   productCode?: string;
-  sku?: string;
   quantity?: number;
   unitCost?: number;
-  updateCostPrice?: boolean;
 }
 
 export interface BulkImportResult {
@@ -1077,33 +1059,25 @@ export async function bulkCreateStockEntry(input: {
       const codes = input.rows
         .map((r) => (r.productCode || "").trim())
         .filter(Boolean);
-      const skus = input.rows
-        .map((r) => (r.sku || "").trim())
-        .filter(Boolean);
 
-      if (codes.length === 0 && skus.length === 0) {
-        throw new Error("No product codes or SKUs provided");
+      if (codes.length === 0) {
+        throw new Error("No product codes provided");
       }
 
       const products = await Product.find({
-        $or: [
-          ...(codes.length > 0 ? [{ productCode: { $in: codes } }] : []),
-          ...(skus.length > 0 ? [{ sku: { $in: skus } }] : []),
-        ],
+        productCode: { $in: codes },
       }).session(session);
       const productByCode = new Map(products.map((p) => [p.productCode, p]));
-      const productBySku = new Map(products.map((p) => [p.sku, p]));
 
       const lineItems: IStockLineItem[] = [];
       for (let i = 0; i < input.rows.length; i++) {
         const r = input.rows[i];
         const code = (r.productCode || "").trim();
-        const sku = (r.sku || "").trim();
         const qty = Number(r.quantity);
         const cost = Number(r.unitCost);
 
-        if (!code && !sku) {
-          throw new Error(`Row ${i + 1}: missing product code or SKU`);
+        if (!code) {
+          throw new Error(`Row ${i + 1}: missing product code`);
         }
         if (!Number.isFinite(qty) || qty <= 0) {
           throw new Error(`Row ${i + 1}: invalid quantity`);
@@ -1112,36 +1086,29 @@ export async function bulkCreateStockEntry(input: {
           throw new Error(`Row ${i + 1}: invalid unit cost`);
         }
 
-        const product = (code && productByCode.get(code)) || productBySku.get(sku);
+        const product = productByCode.get(code);
         if (!product) {
           throw new Error(
-            `Row ${i + 1}: product not found (${code || sku})`
+            `Row ${i + 1}: product not found (${code})`
           );
         }
 
         const previousQuantity = product.quantity;
         const newQuantity = previousQuantity + qty;
-        const previousCostPrice = product.costPrice;
-        const shouldUpdateCost = Boolean(r.updateCostPrice);
 
         product.quantity = newQuantity;
-        if (shouldUpdateCost) {
-          product.costPrice = cost;
-        }
         await product.save({ session });
 
         lineItems.push({
           product: product._id,
           productName: product.name,
           productCode: product.productCode,
-          sku: product.sku,
+          side: "SINGLE",
           quantity: qty,
           unitCost: cost,
           totalCost: qty * cost,
           previousQuantity,
           newQuantity,
-          previousCostPrice: shouldUpdateCost ? previousCostPrice : undefined,
-          newCostPrice: shouldUpdateCost ? cost : undefined,
         });
 
         await InventoryTransaction.create(

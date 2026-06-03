@@ -22,7 +22,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { productSchema, type ProductInput } from "@/lib/validations";
 import { createProduct, updateProduct } from "@/actions/inventory";
 import { UNIT_TYPES } from "@/lib/constants";
-import { generateProductCode, generateSKU } from "@/lib/utils";
+import { generateProductCode } from "@/lib/utils";
 
 interface ShopOpt {
   _id: string;
@@ -39,7 +39,13 @@ interface Props {
   canManageShops?: boolean;
 }
 
-export function ProductForm({ product, categories, suppliers, shops, canManageShops }: Props) {
+export function ProductForm({
+  product,
+  categories,
+  suppliers,
+  shops,
+  canManageShops,
+}: Props) {
   const router = useRouter();
   const [submitting, setSubmitting] = React.useState(false);
 
@@ -56,18 +62,16 @@ export function ProductForm({ product, categories, suppliers, shops, canManageSh
     defaultValues: {
       name: "",
       productCode: generateProductCode(),
-      sku: "",
-      barcode: "",
       category: "",
       brand: "",
       vehicleCompatibility: [],
       description: "",
-      costPrice: 0,
-      sellingPrice: 0,
-      wholesalePrice: 0,
+      price: 0,
+      orientation: "SINGLE",
       quantity: 0,
+      quantityLeft: 0,
+      quantityRight: 0,
       reorderLevel: 10,
-      unitType: "Piece",
       supplier: "",
       images: [],
       shop: defaultShopId,
@@ -78,16 +82,13 @@ export function ProductForm({ product, categories, suppliers, shops, canManageSh
   });
 
   const category = watch("category");
+  const orientation = watch("orientation");
   const [vehicles, setVehicles] = React.useState<string>(
     (product?.vehicleCompatibility ?? []).join(", ")
   );
 
   React.useEffect(() => {
-    if (!product && category && !watch("sku")) {
-      const cat = categories.find((c) => c._id === category);
-      if (cat) setValue("sku", generateSKU(cat.name));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // SKU/unitType/barcode generation removed (current schema no longer contains them).
   }, [category]);
 
   const onSubmit = async (data: ProductInput) => {
@@ -97,9 +98,11 @@ export function ProductForm({ product, categories, suppliers, shops, canManageSh
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean);
+
       const res = product?._id
         ? await updateProduct(product._id, data)
         : await createProduct(data);
+
       if (res.success) {
         toast.success(product?._id ? "Product updated" : "Product created");
         router.push("/inventory");
@@ -119,32 +122,31 @@ export function ProductForm({ product, categories, suppliers, shops, canManageSh
       <Card>
         <CardContent className="p-6 space-y-4">
           <h3 className="text-sm font-semibold">Basic Information</h3>
+
           <div className="grid md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
               <Label htmlFor="name">Product Name *</Label>
               <Input id="name" {...register("name")} />
-              {errors.name && <p className="text-xs text-destructive mt-1">{errors.name.message}</p>}
+              {errors.name && (
+                <p className="text-xs text-destructive mt-1">{errors.name.message}</p>
+              )}
             </div>
+
             <div>
               <Label htmlFor="productCode">Product Code *</Label>
               <Input id="productCode" {...register("productCode")} />
               {errors.productCode && (
-                <p className="text-xs text-destructive mt-1">{errors.productCode.message}</p>
+                <p className="text-xs text-destructive mt-1">
+                  {errors.productCode.message}
+                </p>
               )}
             </div>
-            <div>
-              <Label htmlFor="sku">SKU *</Label>
-              <Input id="sku" {...register("sku")} />
-              {errors.sku && <p className="text-xs text-destructive mt-1">{errors.sku.message}</p>}
-            </div>
-            <div>
-              <Label htmlFor="barcode">Barcode</Label>
-              <Input id="barcode" {...register("barcode")} />
-            </div>
+
             <div>
               <Label htmlFor="brand">Brand</Label>
               <Input id="brand" {...register("brand")} />
             </div>
+
             <div>
               <Label>Category *</Label>
               <Select value={category} onValueChange={(v) => setValue("category", v)}>
@@ -163,24 +165,23 @@ export function ProductForm({ product, categories, suppliers, shops, canManageSh
                 <p className="text-xs text-destructive mt-1">{errors.category.message}</p>
               )}
             </div>
+
             <div>
-              <Label>Unit Type</Label>
+              <Label>Orientation</Label>
               <Select
-                value={watch("unitType")}
-                onValueChange={(v) => setValue("unitType", v)}
+                value={orientation}
+                onValueChange={(v) => setValue("orientation", v as any)}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {UNIT_TYPES.map((u) => (
-                    <SelectItem key={u} value={u}>
-                      {u}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="SINGLE">Single</SelectItem>
+                  <SelectItem value="LEFT_RIGHT">Left / Right</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
             <div className="md:col-span-2">
               <Label>Vehicle Compatibility (comma separated)</Label>
               <Input
@@ -189,6 +190,7 @@ export function ProductForm({ product, categories, suppliers, shops, canManageSh
                 placeholder="Toyota Corolla 2018, Honda Civic 2020..."
               />
             </div>
+
             <div className="md:col-span-2">
               <Label htmlFor="description">Description</Label>
               <Textarea id="description" rows={3} {...register("description")} />
@@ -200,37 +202,41 @@ export function ProductForm({ product, categories, suppliers, shops, canManageSh
       <Card>
         <CardContent className="p-6 space-y-4">
           <h3 className="text-sm font-semibold">Pricing & Stock</h3>
+
           <div className="grid md:grid-cols-3 gap-4">
             <div>
-              <Label htmlFor="costPrice">Cost Price *</Label>
-              <Input id="costPrice" type="number" step="0.01" {...register("costPrice")} />
-              {errors.costPrice && (
-                <p className="text-xs text-destructive mt-1">{errors.costPrice.message}</p>
+              <Label htmlFor="price">Price *</Label>
+              <Input id="price" type="number" step="0.01" {...register("price")} />
+              {errors.price && (
+                <p className="text-xs text-destructive mt-1">{errors.price.message}</p>
               )}
             </div>
-            <div>
-              <Label htmlFor="sellingPrice">Selling Price *</Label>
-              <Input id="sellingPrice" type="number" step="0.01" {...register("sellingPrice")} />
-              {errors.sellingPrice && (
-                <p className="text-xs text-destructive mt-1">{errors.sellingPrice.message}</p>
-              )}
-            </div>
-            <div>
-              <Label htmlFor="wholesalePrice">Wholesale Price *</Label>
-              <Input id="wholesalePrice" type="number" step="0.01" {...register("wholesalePrice")} />
-              {errors.wholesalePrice && (
-                <p className="text-xs text-destructive mt-1">{errors.wholesalePrice.message}</p>
-              )}
-            </div>
+
             <div>
               <Label htmlFor="quantity">Quantity</Label>
-              <Input id="quantity" type="number" {...register("quantity")} />
+              <Input id="quantity" type="number" {...register("quantity")} disabled={orientation === "LEFT_RIGHT"} />
             </div>
+
             <div>
               <Label htmlFor="reorderLevel">Reorder Level</Label>
               <Input id="reorderLevel" type="number" {...register("reorderLevel")} />
             </div>
-            <div>
+
+            {orientation === "LEFT_RIGHT" && (
+              <>
+                <div>
+                  <Label htmlFor="quantityLeft">Left Qty</Label>
+                  <Input id="quantityLeft" type="number" {...register("quantityLeft")} />
+                </div>
+
+                <div>
+                  <Label htmlFor="quantityRight">Right Qty</Label>
+                  <Input id="quantityRight" type="number" {...register("quantityRight")} />
+                </div>
+              </>
+            )}
+
+            <div className="md:col-span-3">
               <Label htmlFor="storageLocation">Storage Location</Label>
               <Input
                 id="storageLocation"
@@ -254,15 +260,14 @@ export function ProductForm({ product, categories, suppliers, shops, canManageSh
               </Button>
             )}
           </div>
+
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <Label className="flex items-center gap-1.5">
                 <Store className="h-3.5 w-3.5 text-muted-foreground" /> Shop / Location *
               </Label>
-              <Select
-                value={watch("shop") || ""}
-                onValueChange={(v) => setValue("shop", v)}
-              >
+
+              <Select value={watch("shop") || ""} onValueChange={(v) => setValue("shop", v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select shop" />
                 </SelectTrigger>
@@ -275,19 +280,12 @@ export function ProductForm({ product, categories, suppliers, shops, canManageSh
                   ))}
                 </SelectContent>
               </Select>
+
               {errors.shop && (
                 <p className="text-xs text-destructive mt-1">{errors.shop.message}</p>
               )}
-              {shops.length === 0 && (
-                <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
-                  <MapPin className="h-3 w-3" />
-                  <Link href="/admin/shops/new" className="underline">
-                    Add a shop
-                  </Link>{" "}
-                  to assign locations to products.
-                </p>
-              )}
             </div>
+
             <div>
               <Label>Supplier</Label>
               <Select
@@ -306,6 +304,7 @@ export function ProductForm({ product, categories, suppliers, shops, canManageSh
                 </SelectContent>
               </Select>
             </div>
+
             <div className="md:col-span-2">
               <Label>Status</Label>
               <Select

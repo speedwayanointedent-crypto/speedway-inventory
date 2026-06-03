@@ -86,20 +86,17 @@ export async function GET(
 
   autoTable(doc, {
     startY: y,
-    head: [["#", "Product", "Code", "SKU", "Qty", "Unit cost", "Line total"]],
+    head: [["#", "Product", "Code", "Qty", "Unit cost", "Line total"]],
     body: entry.lineItems.map((li, i) => [
       String(i + 1),
       li.productName,
       li.productCode,
-      li.sku,
       String(li.quantity),
       formatCurrency(li.unitCost),
       formatCurrency(li.totalCost),
     ]),
     foot: [
       [
-        "",
-        "",
         "",
         "",
         `${entry.totalItems} items · ${entry.totalQuantity} units`,

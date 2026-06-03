@@ -187,8 +187,7 @@ export async function getProducts(opts?: {
     filter.$or = [
       { name: { $regex: opts.search, $options: "i" } },
       { productCode: { $regex: opts.search, $options: "i" } },
-      { sku: { $regex: opts.search, $options: "i" } },
-      { barcode: { $regex: opts.search, $options: "i" } },
+      { storageLocation: { $regex: opts.search, $options: "i" } },
       { storageLocation: { $regex: opts.search, $options: "i" } },
     ];
   }

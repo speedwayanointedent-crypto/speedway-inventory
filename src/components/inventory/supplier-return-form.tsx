@@ -46,10 +46,9 @@ interface ProductOption {
   _id: string;
   name: string;
   productCode: string;
-  sku: string;
-  costPrice: number;
   quantity: number;
   reorderLevel: number;
+  price: number;
 }
 
 interface SupplierOption {
@@ -160,8 +159,7 @@ export function SupplierReturnForm({
       .filter(
         (p) =>
           p.name.toLowerCase().includes(q) ||
-          p.productCode.toLowerCase().includes(q) ||
-          p.sku.toLowerCase().includes(q)
+          p.productCode.toLowerCase().includes(q)
       )
       .slice(0, 30);
   }, [productSearch, products]);
@@ -182,7 +180,7 @@ export function SupplierReturnForm({
     update(index, {
       product: productId,
       quantity: existing?.quantity && existing.quantity > 0 ? existing.quantity : 1,
-      unitCost: product.costPrice,
+      unitCost: 0,
       reason: existing?.reason ?? (primaryReason as SupplierReturnReason) ?? "DEFECTIVE",
       restockable: existing?.restockable ?? true,
     });
@@ -432,7 +430,7 @@ export function SupplierReturnForm({
                           <div className="min-w-0">
                             <p className="text-sm font-medium truncate">{product.name}</p>
                             <p className="text-[10px] text-muted-foreground">
-                              {product.productCode} · {product.sku}
+                              {product.productCode}
                             </p>
                           </div>
                           <button
@@ -496,8 +494,7 @@ export function SupplierReturnForm({
                                         <div className="min-w-0">
                                           <p className="text-sm truncate">{p.name}</p>
                                           <p className="text-[10px] text-muted-foreground">
-                                            {p.productCode} · {p.sku} · Cost{" "}
-                                            {formatCurrency(p.costPrice)}
+                                            {p.productCode} · {formatCurrency(p.price)}
                                           </p>
                                         </div>
                                         <span className="text-[10px] text-muted-foreground shrink-0">

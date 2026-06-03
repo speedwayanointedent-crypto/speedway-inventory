@@ -39,40 +39,45 @@ export const userUpdateSchema = userSchema.partial().extend({
 export const productSchema = z.object({
   name: z.string().min(2, "Product name is required"),
   productCode: z.string().min(1, "Product code is required"),
-  sku: z.string().min(1, "SKU is required"),
-  barcode: z.string().optional(),
   category: z.string().min(1, "Category is required"),
   brand: z.string().optional(),
   vehicleCompatibility: z.array(z.string()).default([]),
   description: z.string().optional(),
-  costPrice: z.coerce.number().min(0, "Cost price must be positive"),
-  sellingPrice: z.coerce.number().min(0, "Selling price must be positive"),
-  wholesalePrice: z.coerce.number().min(0, "Wholesale price must be positive"),
+
+  /**
+   * Single price used for both retail/wholesale logic in the UI/actions.
+   */
+  price: z.coerce.number().min(0, "Price must be positive"),
+
+  orientation: z.enum(["SINGLE", "LEFT_RIGHT"]).default("SINGLE"),
+
   quantity: z.coerce.number().int().min(0).default(0),
+  quantityLeft: z.coerce.number().int().min(0).default(0),
+  quantityRight: z.coerce.number().int().min(0).default(0),
+
   reorderLevel: z.coerce.number().int().min(0).default(10),
-  unitType: z.string().default("Piece"),
   supplier: z.string().optional(),
+
   images: z.array(z.string()).default([]),
   shop: z.string().min(1, "Shop location is required"),
   storageLocation: z.string().optional(),
+
   status: z.enum(["ACTIVE", "INACTIVE", "DISCONTINUED"]).default("ACTIVE"),
 });
 
 const productBaseShape = {
   name: z.string().min(2, "Product name is required").optional(),
   productCode: z.string().min(1, "Product code is required").optional(),
-  sku: z.string().min(1, "SKU is required").optional(),
-  barcode: z.string().optional(),
   category: z.string().min(1, "Category is required").optional(),
   brand: z.string().optional(),
   vehicleCompatibility: z.array(z.string()).optional(),
   description: z.string().optional(),
-  costPrice: z.coerce.number().min(0, "Cost price must be positive").optional(),
-  sellingPrice: z.coerce.number().min(0, "Selling price must be positive").optional(),
-  wholesalePrice: z.coerce.number().min(0, "Wholesale price must be positive").optional(),
+  price: z.coerce.number().min(0, "Price must be positive").optional(),
+  orientation: z.enum(["SINGLE", "LEFT_RIGHT"]).optional(),
   quantity: z.coerce.number().int().min(0).optional(),
+  quantityLeft: z.coerce.number().int().min(0).optional(),
+  quantityRight: z.coerce.number().int().min(0).optional(),
   reorderLevel: z.coerce.number().int().min(0).optional(),
-  unitType: z.string().optional(),
   supplier: z.string().optional(),
   images: z.array(z.string()).optional(),
   shop: z.string().min(1, "Shop location is required").optional(),
@@ -186,9 +191,16 @@ export const customerUpdateSchema = z.object(customerBaseShape);
 
 export const stockLineItemSchema = z.object({
   product: z.string().min(1, "Product is required"),
+  /**
+   * For intake:
+   * - SINGLE: increment quantity of Product.quantity
+   * - LEFT_RIGHT: increment the chosen side (left/right)
+   * - stored StockEntry line items always require side.
+   */
+  side: z.enum(["LEFT", "RIGHT", "SINGLE"]).default("SINGLE"),
+
   quantity: z.coerce.number().int().min(1, "Quantity must be at least 1"),
   unitCost: z.coerce.number().min(0, "Cost cannot be negative"),
-  updateCostPrice: z.boolean().default(false),
 });
 
 export const stockEntrySchema = z.object({
