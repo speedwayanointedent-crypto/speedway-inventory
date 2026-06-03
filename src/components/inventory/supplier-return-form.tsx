@@ -34,7 +34,7 @@ import {
   type SupplierReturnInput,
 } from "@/lib/validations";
 import { createSupplierReturn, updateSupplierReturn } from "@/actions/supplier-returns";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, getEffectiveQuantity } from "@/lib/utils";
 import {
   SUPPLIER_RETURN_REASON_LABELS,
   SUPPLIER_RETURN_RESOLUTION_LABELS,
@@ -46,9 +46,12 @@ interface ProductOption {
   _id: string;
   name: string;
   productCode: string;
-  quantity: number;
-  reorderLevel: number;
   price: number;
+  quantity: number;
+  quantityLeft?: number;
+  quantityRight?: number;
+  orientation?: string;
+  reorderLevel: number;
 }
 
 interface SupplierOption {
@@ -153,7 +156,7 @@ export function SupplierReturnForm({
   const supplierDetails = suppliers.find((s) => s._id === supplier);
   const filteredProducts = React.useMemo(() => {
     const q = productSearch.trim().toLowerCase();
-    const available = products.filter((p) => p.quantity > 0);
+    const available = products.filter((p) => getEffectiveQuantity(p) > 0);
     if (!q) return available.slice(0, 30);
     return available
       .filter(
@@ -413,7 +416,7 @@ export function SupplierReturnForm({
             {fields.map((field, index) => {
               const li = lineItems[index];
               const product = li?.product ? productMap.get(li.product) : null;
-              const maxQty = product?.quantity ?? 999999;
+              const maxQty = product ? getEffectiveQuantity(product) : 999999;
               const overLimit = li?.quantity > maxQty;
               return (
                 <div
@@ -498,7 +501,7 @@ export function SupplierReturnForm({
                                           </p>
                                         </div>
                                         <span className="text-[10px] text-muted-foreground shrink-0">
-                                          {p.quantity} in stock
+                                          {getEffectiveQuantity(p)} in stock
                                         </span>
                                       </button>
                                     );

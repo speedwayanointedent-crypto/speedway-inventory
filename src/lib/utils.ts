@@ -76,6 +76,44 @@ export function slugify(str: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+export function getEffectiveQuantity(product: {
+  orientation?: string;
+  quantity: number;
+  quantityLeft?: number;
+  quantityRight?: number;
+}): number {
+  if (product.orientation === "LEFT_RIGHT") {
+    return (product.quantityLeft ?? 0) + (product.quantityRight ?? 0);
+  }
+  return product.quantity;
+}
+
+export function addStockLine(
+  product: { orientation?: string; quantity: number; quantityLeft?: number; quantityRight?: number },
+  side: "SINGLE" | "LEFT" | "RIGHT",
+  qty: number
+): { quantity: number; quantityLeft?: number; quantityRight?: number } {
+  if (product.orientation === "LEFT_RIGHT" && side !== "SINGLE") {
+    const left = side === "LEFT" ? (product.quantityLeft ?? 0) + qty : product.quantityLeft ?? 0;
+    const right = side === "RIGHT" ? (product.quantityRight ?? 0) + qty : product.quantityRight ?? 0;
+    return { quantity: left + right, quantityLeft: left, quantityRight: right };
+  }
+  return { quantity: product.quantity + qty };
+}
+
+export function subtractStockLine(
+  product: { orientation?: string; quantity: number; quantityLeft?: number; quantityRight?: number },
+  side: "SINGLE" | "LEFT" | "RIGHT",
+  qty: number
+): { quantity: number; quantityLeft?: number; quantityRight?: number } {
+  if (product.orientation === "LEFT_RIGHT" && side !== "SINGLE") {
+    const left = side === "LEFT" ? Math.max(0, (product.quantityLeft ?? 0) - qty) : product.quantityLeft ?? 0;
+    const right = side === "RIGHT" ? Math.max(0, (product.quantityRight ?? 0) - qty) : product.quantityRight ?? 0;
+    return { quantity: left + right, quantityLeft: left, quantityRight: right };
+  }
+  return { quantity: Math.max(0, product.quantity - qty) };
+}
+
 export function getStockStatus(quantity: number, reorderLevel: number) {
   if (quantity <= 0) return { label: "Out of Stock", variant: "destructive" as const };
   if (quantity <= reorderLevel) return { label: "Low Stock", variant: "warning" as const };

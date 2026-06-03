@@ -20,7 +20,7 @@ import {
   type SupplierReturnInput,
   type SupplierReturnUpdateInput,
 } from "@/lib/validations";
-import { formatCurrency, generateSupplierReturnReferenceNumber, safeJSON } from "@/lib/utils";
+import { formatCurrency, generateSupplierReturnReferenceNumber, safeJSON, getEffectiveQuantity } from "@/lib/utils";
 import type { ISupplierReturnItem } from "@/models/SupplierReturn";
 
 interface ReturnLineInput {
@@ -82,11 +82,19 @@ export async function createSupplierReturn(input: SupplierReturnInput) {
       const items: ISupplierReturnItem[] = [];
       for (const item of data.items) {
         const product = productMap.get(item.product)!;
-        const previousQuantity = product.quantity;
+        const previousQuantity = getEffectiveQuantity(product);
         const newQuantity = Math.max(0, previousQuantity - item.quantity);
 
         if (item.restockable) {
-          product.quantity = newQuantity;
+          if (product.orientation === "LEFT_RIGHT") {
+            const left = product.quantityLeft ?? 0;
+            const takeFromLeft = Math.min(left, item.quantity);
+            product.quantityLeft = left - takeFromLeft;
+            product.quantityRight = (product.quantityRight ?? 0) - (item.quantity - takeFromLeft);
+            product.quantity = (product.quantityLeft ?? 0) + (product.quantityRight ?? 0);
+          } else {
+            product.quantity = newQuantity;
+          }
           await product.save({ session });
         }
 
@@ -255,10 +263,18 @@ export async function updateSupplierReturn(
           const diff = update.quantity - original.quantity;
           if (diff === 0) continue;
 
-          const previousQuantity = product.quantity;
+          const previousQuantity = getEffectiveQuantity(product);
           const newQuantity = Math.max(0, previousQuantity - diff);
           if (newQuantity !== previousQuantity) {
-            product.quantity = newQuantity;
+            if (product.orientation === "LEFT_RIGHT") {
+              const left = product.quantityLeft ?? 0;
+              const takeFromLeft = Math.min(left, diff);
+              product.quantityLeft = left - takeFromLeft;
+              product.quantityRight = (product.quantityRight ?? 0) - (diff - takeFromLeft);
+              product.quantity = (product.quantityLeft ?? 0) + (product.quantityRight ?? 0);
+            } else {
+              product.quantity = newQuantity;
+            }
             await product.save({ session });
             await InventoryTransaction.create(
               [
@@ -454,8 +470,13 @@ export async function cancelSupplierReturn(id: string, reason: string) {
         if (!li.restockable) continue;
         const product = await Product.findById(li.product).session(session);
         if (!product) continue;
-        const previousQuantity = product.quantity;
-        product.quantity = previousQuantity + li.quantity;
+        const previousQuantity = getEffectiveQuantity(product);
+        if (product.orientation === "LEFT_RIGHT") {
+          product.quantityLeft = (product.quantityLeft ?? 0) + li.quantity;
+          product.quantity = (product.quantityLeft ?? 0) + (product.quantityRight ?? 0);
+        } else {
+          product.quantity = previousQuantity + li.quantity;
+        }
         await product.save({ session });
         await InventoryTransaction.create(
           [

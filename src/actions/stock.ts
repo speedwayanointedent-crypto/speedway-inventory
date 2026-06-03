@@ -18,6 +18,9 @@ import {
   formatCurrency,
   generateStockReferenceNumber,
   safeJSON,
+  getEffectiveQuantity,
+  addStockLine,
+  subtractStockLine,
 } from "@/lib/utils";
 import type { IStockLineItem } from "@/models/StockEntry";
 import type { ISupplier } from "@/models/Supplier";
@@ -85,9 +88,11 @@ export async function createStockEntry(input: StockEntryInput) {
       const lineItems: IStockLineItem[] = [];
       for (const item of data.lineItems) {
         const product = productMap.get(item.product)!;
-        const previousQuantity = product.quantity;
-        const newQuantity = previousQuantity + item.quantity;
-        product.quantity = newQuantity;
+        const previousQuantity = getEffectiveQuantity(product);
+        const update = addStockLine(product, item.side, item.quantity);
+        product.quantity = update.quantity;
+        if (update.quantityLeft !== undefined) product.quantityLeft = update.quantityLeft;
+        if (update.quantityRight !== undefined) product.quantityRight = update.quantityRight;
         await product.save({ session });
 
         lineItems.push({
@@ -99,7 +104,7 @@ export async function createStockEntry(input: StockEntryInput) {
           unitCost: item.unitCost,
           totalCost: item.quantity * item.unitCost,
           previousQuantity,
-          newQuantity,
+          newQuantity: getEffectiveQuantity(product),
         });
 
         await InventoryTransaction.create(
@@ -110,7 +115,7 @@ export async function createStockEntry(input: StockEntryInput) {
               type: "STOCK_IN",
               previousQuantity,
               changeQuantity: item.quantity,
-              newQuantity,
+              newQuantity: getEffectiveQuantity(product),
               reason: `Stock intake ${referenceNumber}${data.invoiceNumber ? ` (Invoice: ${data.invoiceNumber})` : ""}`,
               reference: referenceNumber,
               referenceModel: "StockEntry",
@@ -186,25 +191,36 @@ export async function createStockEntry(input: StockEntryInput) {
   try {
     const stillLow = await Product.find({
       _id: { $in: data.lineItems.map((i) => i.product) },
-      $expr: { $lte: ["$quantity", "$reorderLevel"] },
+      $expr: {
+        $lte: [
+          {
+            $cond: [
+              { $eq: ["$orientation", "LEFT_RIGHT"] },
+              { $add: [{ $ifNull: ["$quantityLeft", 0] }, { $ifNull: ["$quantityRight", 0] }] },
+              "$quantity",
+            ],
+          },
+          "$reorderLevel",
+        ],
+      },
     })
     .select("name productCode price orientation quantity quantityLeft quantityRight reorderLevel")
       .lean();
     for (const p of stillLow) {
       await createNotification({
-        type: p.quantity <= 0 ? "OUT_OF_STOCK" : "STILL_LOW_AFTER_INTAKE",
+        type: getEffectiveQuantity(p) <= 0 ? "OUT_OF_STOCK" : "STILL_LOW_AFTER_INTAKE",
         title:
-          p.quantity <= 0
+          getEffectiveQuantity(p) <= 0
             ? `${p.name} still out of stock after intake`
             : `${p.name} still below reorder level`,
         message:
-          p.quantity <= 0
+          getEffectiveQuantity(p) <= 0
             ? `Intake recorded but stock is still 0. Reorder from supplier.`
-            : `After intake, only ${p.quantity} units remain (reorder level ${p.reorderLevel}).`,
+            : `After intake, only ${getEffectiveQuantity(p)} units remain (reorder level ${p.reorderLevel}).`,
         link: `/inventory/${p._id}`,
         metadata: {
           productId: p._id.toString(),
-          quantity: p.quantity,
+          quantity: getEffectiveQuantity(p),
           reorderLevel: p.reorderLevel,
           referenceNumber,
         },
@@ -270,8 +286,11 @@ export async function updateStockEntry(id: string, input: StockEntryUpdateInput)
           if (!product && newLi) throw new Error(`Product not found: ${pid}`);
 
           if (product && oldLi && !newLi) {
-            const previousQuantity = product.quantity;
-            product.quantity = Math.max(0, previousQuantity - oldLi.quantity);
+            const previousQuantity = getEffectiveQuantity(product);
+            const update = subtractStockLine(product, oldLi.side ?? "SINGLE", oldLi.quantity);
+            product.quantity = update.quantity;
+            if (update.quantityLeft !== undefined) product.quantityLeft = update.quantityLeft;
+            if (update.quantityRight !== undefined) product.quantityRight = update.quantityRight;
             await product.save({ session });
             await InventoryTransaction.create(
               [
@@ -292,8 +311,11 @@ export async function updateStockEntry(id: string, input: StockEntryUpdateInput)
               { session }
             );
           } else if (product && !oldLi && newLi) {
-            const previousQuantity = product.quantity;
-            product.quantity = previousQuantity + newLi.quantity;
+            const previousQuantity = getEffectiveQuantity(product);
+            const update = addStockLine(product, newLi.side ?? "SINGLE", newLi.quantity);
+            product.quantity = update.quantity;
+            if (update.quantityLeft !== undefined) product.quantityLeft = update.quantityLeft;
+            if (update.quantityRight !== undefined) product.quantityRight = update.quantityRight;
             await product.save({ session });
             await InventoryTransaction.create(
               [
@@ -316,8 +338,13 @@ export async function updateStockEntry(id: string, input: StockEntryUpdateInput)
           } else if (product && oldLi && newLi) {
             const diff = newLi.quantity - oldLi.quantity;
             if (diff !== 0) {
-              const previousQuantity = product.quantity;
-              product.quantity = Math.max(0, previousQuantity + diff);
+              const previousQuantity = getEffectiveQuantity(product);
+              const update = diff > 0
+                ? addStockLine(product, newLi.side ?? "SINGLE", diff)
+                : subtractStockLine(product, oldLi.side ?? "SINGLE", -diff);
+              product.quantity = update.quantity;
+              if (update.quantityLeft !== undefined) product.quantityLeft = update.quantityLeft;
+              if (update.quantityRight !== undefined) product.quantityRight = update.quantityRight;
               await product.save({ session });
               await InventoryTransaction.create(
                 [
@@ -483,8 +510,11 @@ export async function cancelStockEntry(id: string, reason: string) {
       for (const li of entry.lineItems) {
         const product = await Product.findById(li.product).session(session);
         if (product) {
-          const previousQuantity = product.quantity;
-          product.quantity = Math.max(0, previousQuantity - li.quantity);
+          const previousQuantity = getEffectiveQuantity(product);
+          const update = subtractStockLine(product, li.side ?? "SINGLE", li.quantity);
+          product.quantity = update.quantity;
+          if (update.quantityLeft !== undefined) product.quantityLeft = update.quantityLeft;
+          if (update.quantityRight !== undefined) product.quantityRight = update.quantityRight;
           await product.save({ session });
           await InventoryTransaction.create(
             [
@@ -922,7 +952,7 @@ export async function getStockEntryProducts() {
   await requirePermission(PERMISSIONS.VIEW_INVENTORY);
   await connectDB();
   const products = await Product.find({ status: "ACTIVE" })
-    .select("name productCode quantity reorderLevel")
+    .select("name productCode quantity quantityLeft quantityRight reorderLevel orientation")
     .sort({ name: 1 })
     .lean();
   return safeJSON<unknown[]>(products);
@@ -953,9 +983,12 @@ export async function getLowStockReport(opts?: {
     .sort({ quantity: 1 })
     .lean();
 
-  const lowStock = products.filter((p) => p.quantity > 0 && p.quantity <= p.reorderLevel);
-  const outOfStock = products.filter((p) => p.quantity <= 0);
-  const inStock = products.filter((p) => p.quantity > p.reorderLevel);
+  const lowStock = products.filter((p) => {
+    const q = getEffectiveQuantity(p);
+    return q > 0 && q <= p.reorderLevel;
+  });
+  const outOfStock = products.filter((p) => getEffectiveQuantity(p) <= 0);
+  const inStock = products.filter((p) => getEffectiveQuantity(p) > p.reorderLevel);
 
   const estimatedReorderCost = 0;
   const outOfStockReorderCost = 0;
@@ -980,7 +1013,18 @@ export async function getLowStockNotifications() {
 
   const lowStockProducts = await Product.find({
     status: "ACTIVE",
-    $expr: { $lte: ["$quantity", "$reorderLevel"] },
+    $expr: {
+      $lte: [
+        {
+          $cond: [
+            { $eq: ["$orientation", "LEFT_RIGHT"] },
+            { $add: [{ $ifNull: ["$quantityLeft", 0] }, { $ifNull: ["$quantityRight", 0] }] },
+            "$quantity",
+          ],
+        },
+        "$reorderLevel",
+      ],
+    },
   })
     .select("_id name productCode quantity reorderLevel supplier")
     .populate("supplier", "companyName")
@@ -1093,10 +1137,11 @@ export async function bulkCreateStockEntry(input: {
           );
         }
 
-        const previousQuantity = product.quantity;
-        const newQuantity = previousQuantity + qty;
-
-        product.quantity = newQuantity;
+        const previousQuantity = getEffectiveQuantity(product);
+        const update = addStockLine(product, "SINGLE", qty);
+        product.quantity = update.quantity;
+        if (update.quantityLeft !== undefined) product.quantityLeft = update.quantityLeft;
+        if (update.quantityRight !== undefined) product.quantityRight = update.quantityRight;
         await product.save({ session });
 
         lineItems.push({
@@ -1108,7 +1153,7 @@ export async function bulkCreateStockEntry(input: {
           unitCost: cost,
           totalCost: qty * cost,
           previousQuantity,
-          newQuantity,
+          newQuantity: getEffectiveQuantity(product),
         });
 
         await InventoryTransaction.create(
@@ -1119,7 +1164,7 @@ export async function bulkCreateStockEntry(input: {
               type: "STOCK_IN",
               previousQuantity,
               changeQuantity: qty,
-              newQuantity,
+              newQuantity: getEffectiveQuantity(product),
               reason: `Bulk stock intake${input.invoiceNumber ? ` (Invoice: ${input.invoiceNumber})` : ""}`,
               reference: undefined,
               referenceModel: "StockEntry",

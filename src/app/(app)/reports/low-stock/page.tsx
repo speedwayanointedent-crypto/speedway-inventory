@@ -15,7 +15,7 @@ import { SearchInput } from "@/components/layout/search-input";
 import { FilterSelect } from "@/components/layout/filter-select";
 import { getLowStockReport } from "@/actions/stock";
 import { SendLowStockAlertsButton } from "@/components/inventory/send-low-stock-alerts-button";
-import { formatCurrency, getStockStatus } from "@/lib/utils";
+import { formatCurrency, getStockStatus, getEffectiveQuantity } from "@/lib/utils";
 
 interface PageProps {
   searchParams: Promise<{ search?: string; category?: string; shop?: string }>;
@@ -34,6 +34,9 @@ export default async function LowStockReportPage({ searchParams }: PageProps) {
     name: string;
     productCode: string;
     quantity: number;
+    quantityLeft?: number;
+    quantityRight?: number;
+    orientation?: string;
     reorderLevel: number;
     supplier?: { companyName: string; phone?: string };
     category?: { name: string };
@@ -226,8 +229,9 @@ export default async function LowStockReportPage({ searchParams }: PageProps) {
                   </thead>
                   <tbody>
                     {list.map((p) => {
-                      const status = getStockStatus(p.quantity, p.reorderLevel);
-                      const need = Math.max(0, p.reorderLevel * 2 - p.quantity);
+                      const q = getEffectiveQuantity(p);
+                      const status = getStockStatus(q, p.reorderLevel);
+                      const need = Math.max(0, p.reorderLevel * 2 - q);
                       const cost = 0;
                       return (
                         <tr key={p._id} className="border-b last:border-0 hover:bg-muted/30">
@@ -246,7 +250,7 @@ export default async function LowStockReportPage({ searchParams }: PageProps) {
                             {p.category?.name || "—"}
                           </td>
                           <td className="p-3 text-right tabular-nums font-bold">
-                            {p.quantity}
+                            {q}
                           </td>
                           <td className="p-3 text-right tabular-nums">
                             {p.reorderLevel}
@@ -289,8 +293,9 @@ export default async function LowStockReportPage({ searchParams }: PageProps) {
               </div>
               <div className="md:hidden divide-y">
                 {list.map((p) => {
-                  const status = getStockStatus(p.quantity, p.reorderLevel);
-                  const need = Math.max(0, p.reorderLevel * 2 - p.quantity);
+                  const q = getEffectiveQuantity(p);
+                  const status = getStockStatus(q, p.reorderLevel);
+                  const need = Math.max(0, p.reorderLevel * 2 - q);
                   const cost = 0;
                   return (
                     <Link
@@ -312,7 +317,7 @@ export default async function LowStockReportPage({ searchParams }: PageProps) {
                           )}
                         </div>
                         <div className="text-right">
-                          <p className="text-base font-bold tabular-nums">{p.quantity}</p>
+                          <p className="text-base font-bold tabular-nums">{q}</p>
                           <Badge
                             variant={
                               status.variant === "destructive"

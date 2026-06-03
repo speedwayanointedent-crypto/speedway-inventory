@@ -19,7 +19,7 @@ import { Card } from "@/components/ui/card";
 import { PageHeader, EmptyState } from "@/components/layout/page-header";
 import { SearchInput } from "@/components/layout/search-input";
 import { Pagination } from "@/components/layout/pagination";
-import { formatCurrency, getStockStatus, truncate } from "@/lib/utils";
+import { formatCurrency, getStockStatus, truncate, getEffectiveQuantity } from "@/lib/utils";
 import { ProductActions } from "@/components/inventory/product-actions";
 import { FilterSelect } from "@/components/layout/filter-select";
 
@@ -170,7 +170,8 @@ export default async function InventoryPage({ searchParams }: Props) {
 }
 
 function ProductCard({ product: p }: { product: ProductItem }) {
-  const status = getStockStatus(p.quantity, p.reorderLevel);
+  const qty = getEffectiveQuantity(p);
+  const status = getStockStatus(qty, p.reorderLevel);
   const accent = STATUS_ACCENTS[p.status] || STATUS_ACCENTS.ACTIVE;
 
   return (
@@ -198,7 +199,7 @@ function ProductCard({ product: p }: { product: ProductItem }) {
               className="text-[10px] h-5 px-1.5 shadow-sm backdrop-blur"
             >
               {status.variant === "warning" && <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />}
-              {p.quantity} units
+              {qty} units
             </Badge>
           </div>
           <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -229,7 +230,7 @@ function ProductCard({ product: p }: { product: ProductItem }) {
             <div className="text-right">
               <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Stock</p>
               <p className="text-xs font-medium text-muted-foreground">
-                {p.quantity} units
+                {qty} units
               </p>
             </div>
           </div>

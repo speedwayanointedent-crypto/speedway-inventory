@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
-import { formatCurrency, truncate } from "@/lib/utils";
+import { formatCurrency, truncate, getEffectiveQuantity } from "@/lib/utils";
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS, type PaymentMethod } from "@/lib/constants";
 import { searchProductsForPOS, createSale } from "@/actions/sales";
 
@@ -45,6 +45,9 @@ interface Product {
   productCode: string;
   price: number;
   quantity: number;
+  quantityLeft?: number;
+  quantityRight?: number;
+  orientation?: string;
 }
 
 interface CartItem {
@@ -103,11 +106,12 @@ export function POSClient({ taxRate }: { taxRate: number }) {
   }, [query]);
 
   const addToCart = (p: Product) => {
-    if (p.quantity <= 0) return toast.error("Out of stock");
+    const avail = getEffectiveQuantity(p);
+    if (avail <= 0) return toast.error("Out of stock");
     setCart((prev) => {
       const existing = prev.find((i) => i.product === p._id);
       if (existing) {
-        if (existing.quantity >= p.quantity) {
+        if (existing.quantity >= avail) {
           toast.error("Cannot exceed stock");
           return prev;
         }
@@ -124,7 +128,7 @@ export function POSClient({ taxRate }: { taxRate: number }) {
           quantity: 1,
           unitPrice: p.price,
           discount: 0,
-          stock: p.quantity,
+          stock: avail,
         },
       ];
     });
@@ -261,12 +265,14 @@ export function POSClient({ taxRate }: { taxRate: number }) {
                 </div>
               )}
               <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2 p-3">
-                {products.map((p) => (
+                {products.map((p) => {
+                  const avail = getEffectiveQuantity(p);
+                  return (
                   <button
                     key={p._id}
                     type="button"
                     onClick={() => addToCart(p)}
-                    disabled={p.quantity <= 0}
+                    disabled={avail <= 0}
                     className="text-left rounded-md border bg-card hover:bg-accent hover:border-primary transition p-3 disabled:opacity-50 disabled:cursor-not-allowed group"
                   >
                     <div className="aspect-square rounded bg-muted/40 mb-2 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
@@ -282,12 +288,13 @@ export function POSClient({ taxRate }: { taxRate: number }) {
                       <span className="text-sm font-bold text-primary">
                         {formatCurrency(p.price)}
                       </span>
-                      <Badge variant={p.quantity > 10 ? "outline" : "warning"} className="text-[9px]">
-                        {p.quantity}
+                      <Badge variant={avail > 10 ? "outline" : "warning"} className="text-[9px]">
+                        {avail}
                       </Badge>
                     </div>
                   </button>
-                ))}
+                  );
+                })}
               </div>
             </ScrollArea>
           </CardContent>

@@ -8,7 +8,7 @@ import { returnSchema, type ReturnInput } from "@/lib/validations";
 import { PERMISSIONS } from "@/lib/constants";
 import { logActivity } from "@/lib/activity";
 import { createNotification } from "@/lib/notifications";
-import { safeJSON } from "@/lib/utils";
+import { safeJSON, getEffectiveQuantity } from "@/lib/utils";
 
 export async function createReturn(input: ReturnInput) {
   const user = await requirePermission(PERMISSIONS.PROCESS_RETURNS);
@@ -41,8 +41,13 @@ export async function createReturn(input: ReturnInput) {
     for (const item of data.items) {
       const product = await Product.findById(item.product);
       if (product) {
-        const previousQuantity = product.quantity;
-        product.quantity += item.quantity;
+        const previousQuantity = getEffectiveQuantity(product);
+        if (product.orientation === "LEFT_RIGHT") {
+          product.quantityLeft = (product.quantityLeft ?? 0) + item.quantity;
+          product.quantity = (product.quantityLeft ?? 0) + (product.quantityRight ?? 0);
+        } else {
+          product.quantity += item.quantity;
+        }
         await product.save();
         await InventoryTransaction.create({
           product: product._id,
@@ -50,7 +55,7 @@ export async function createReturn(input: ReturnInput) {
           type: "RETURN",
           previousQuantity,
           changeQuantity: item.quantity,
-          newQuantity: product.quantity,
+          newQuantity: getEffectiveQuantity(product),
           reason: data.reason,
           reference: returnNumber,
           referenceModel: "Return",

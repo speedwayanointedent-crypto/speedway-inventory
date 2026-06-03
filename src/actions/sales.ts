@@ -10,7 +10,7 @@ import { saleSchema, type SaleInput } from "@/lib/validations";
 import { PERMISSIONS } from "@/lib/constants";
 import { logActivity } from "@/lib/activity";
 import { createNotification } from "@/lib/notifications";
-import { generateSaleNumber, safeJSON } from "@/lib/utils";
+import { generateSaleNumber, safeJSON, getEffectiveQuantity } from "@/lib/utils";
 
 export async function createSale(input: SaleInput) {
   const user = await requirePermission(PERMISSIONS.CREATE_SALES);
@@ -30,11 +30,20 @@ export async function createSale(input: SaleInput) {
       for (const item of data.items) {
         const product = await Product.findById(item.product).session(session);
         if (!product) throw new Error(`Product not found: ${item.productName}`);
-        if (product.quantity < item.quantity) {
+        const effectiveQuantity = getEffectiveQuantity(product);
+        if (effectiveQuantity < item.quantity) {
           throw new Error(`Insufficient stock for ${product.name}`);
         }
-        const previousQuantity = product.quantity;
-        product.quantity -= item.quantity;
+        const previousQuantity = effectiveQuantity;
+        if (product.orientation === "LEFT_RIGHT") {
+          const left = product.quantityLeft ?? 0;
+          const takeFromLeft = Math.min(left, item.quantity);
+          product.quantityLeft = left - takeFromLeft;
+          product.quantityRight = (product.quantityRight ?? 0) - (item.quantity - takeFromLeft);
+          product.quantity = (product.quantityLeft ?? 0) + (product.quantityRight ?? 0);
+        } else {
+          product.quantity -= item.quantity;
+        }
         product.totalSold += item.quantity;
         await product.save({ session });
 
@@ -46,7 +55,7 @@ export async function createSale(input: SaleInput) {
               type: "SALE",
               previousQuantity,
               changeQuantity: -item.quantity,
-              newQuantity: product.quantity,
+              newQuantity: getEffectiveQuantity(product),
               reason: `Sale ${saleNumber}`,
               reference: saleNumber,
               referenceModel: "Sale",
@@ -57,11 +66,11 @@ export async function createSale(input: SaleInput) {
           { session }
         );
 
-        if (product.quantity <= product.reorderLevel) {
+        if (getEffectiveQuantity(product) <= product.reorderLevel) {
           await createNotification({
-            type: product.quantity <= 0 ? "OUT_OF_STOCK" : "LOW_STOCK",
-            title: product.quantity <= 0 ? "Out of stock" : "Low stock",
-            message: `${product.name} now has ${product.quantity} units`,
+            type: getEffectiveQuantity(product) <= 0 ? "OUT_OF_STOCK" : "LOW_STOCK",
+            title: getEffectiveQuantity(product) <= 0 ? "Out of stock" : "Low stock",
+            message: `${product.name} now has ${getEffectiveQuantity(product)} units`,
             link: `/inventory/${product._id}`,
           });
         }
@@ -150,8 +159,13 @@ export async function refundSale(saleId: string, reason: string) {
   for (const item of sale.items) {
     const product = await Product.findById(item.product);
     if (product) {
-      const previousQuantity = product.quantity;
-      product.quantity += item.quantity;
+      const previousQuantity = getEffectiveQuantity(product);
+      if (product.orientation === "LEFT_RIGHT") {
+        product.quantityLeft = (product.quantityLeft ?? 0) + item.quantity;
+        product.quantity = (product.quantityLeft ?? 0) + (product.quantityRight ?? 0);
+      } else {
+        product.quantity += item.quantity;
+      }
       product.totalSold = Math.max(0, product.totalSold - item.quantity);
       await product.save();
 
@@ -161,7 +175,7 @@ export async function refundSale(saleId: string, reason: string) {
         type: "RETURN",
         previousQuantity,
         changeQuantity: item.quantity,
-        newQuantity: product.quantity,
+        newQuantity: getEffectiveQuantity(product),
         reason: `Refund for sale ${sale.saleNumber}`,
         reference: sale.saleNumber,
         referenceModel: "Sale",
@@ -200,9 +214,18 @@ export async function cancelSale(saleId: string) {
   if (!sale) return { success: false, error: "Not found" };
 
   for (const item of sale.items) {
-    await Product.findByIdAndUpdate(item.product, {
-      $inc: { quantity: item.quantity, totalSold: -item.quantity },
-    });
+    const product = await Product.findById(item.product);
+    if (product) {
+      if (product.orientation === "LEFT_RIGHT") {
+        product.quantityLeft = (product.quantityLeft ?? 0) + item.quantity;
+        product.quantity = (product.quantityLeft ?? 0) + (product.quantityRight ?? 0);
+        product.totalSold = Math.max(0, product.totalSold - item.quantity);
+      } else {
+        product.quantity += item.quantity;
+        product.totalSold = Math.max(0, product.totalSold - item.quantity);
+      }
+      await product.save();
+    }
   }
 
   sale.status = "CANCELLED";
@@ -270,7 +293,14 @@ export async function getSaleByPublicId(publicId: string) {
 export async function searchProductsForPOS(query: string) {
   await requirePermission(PERMISSIONS.CREATE_SALES);
   await connectDB();
-  const filter: Record<string, unknown> = { status: "ACTIVE", quantity: { $gt: 0 } };
+  const filter: Record<string, unknown> = {
+    status: "ACTIVE",
+    $or: [
+      { quantity: { $gt: 0 } },
+      { orientation: "LEFT_RIGHT", quantityLeft: { $gt: 0 } },
+      { orientation: "LEFT_RIGHT", quantityRight: { $gt: 0 } },
+    ],
+  };
   if (query) {
     filter.$or = [
       { name: { $regex: query, $options: "i" } },

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/layout/page-header";
-import { formatCurrency, getStockStatus } from "@/lib/utils";
+import { formatCurrency, getStockStatus, getEffectiveQuantity } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Inventory Report" };
 
@@ -75,10 +75,14 @@ export default async function InventoryReportPage() {
               productCode: string;
               category?: { name?: string };
               quantity: number;
+              quantityLeft?: number;
+              quantityRight?: number;
+              orientation?: string;
               reorderLevel: number;
               price: number;
             }>).map((p) => {
-              const status = getStockStatus(p.quantity, p.reorderLevel);
+              const q = getEffectiveQuantity(p);
+              const status = getStockStatus(q, p.reorderLevel);
               return (
                 <TableRow key={p._id}>
                   <TableCell>
@@ -86,12 +90,12 @@ export default async function InventoryReportPage() {
                     <p className="text-xs text-muted-foreground">{p.productCode}</p>
                   </TableCell>
                   <TableCell className="text-sm">{p.category?.name || "—"}</TableCell>
-                  <TableCell className="text-center font-semibold">{p.quantity}</TableCell>
+                  <TableCell className="text-center font-semibold">{q}</TableCell>
                   <TableCell className="text-right text-sm">
                     {formatCurrency(p.price)}
                   </TableCell>
                   <TableCell className="text-right font-semibold">
-                    {formatCurrency(p.quantity * p.price)}
+                    {formatCurrency(q * p.price)}
                   </TableCell>
                   <TableCell>
                     <Badge variant={status.variant}>{status.label}</Badge>

@@ -21,7 +21,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { formatCurrency, formatDate, getStockStatus } from "@/lib/utils";
+import { formatCurrency, formatDate, getStockStatus, getEffectiveQuantity } from "@/lib/utils";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -38,7 +38,8 @@ export default async function ProductDetailPage({ params }: Props) {
   const product = (await getProduct(id)) as Record<string, unknown> | null;
   if (!product) notFound();
 
-  const status = getStockStatus(product.quantity as number, product.reorderLevel as number);
+  const effectiveQty = getEffectiveQuantity(product as { orientation?: string; quantity: number; quantityLeft?: number; quantityRight?: number });
+  const status = getStockStatus(effectiveQty, product.reorderLevel as number);
   const category = product.category as { name?: string } | undefined;
   const supplier = product.supplier as { companyName?: string } | undefined;
   const shop = product.shop as { name?: string; code?: string; city?: string; address?: string } | undefined;
@@ -117,7 +118,7 @@ export default async function ProductDetailPage({ params }: Props) {
                   <Box className="h-3.5 w-3.5" /> In stock
                 </div>
                 <div className="text-right font-semibold">
-                  {product.quantity as number}
+                  {effectiveQty}
                 </div>
                 <div className="flex items-center gap-1.5 text-muted-foreground">
                   <Hash className="h-3.5 w-3.5" /> Reorder at
@@ -194,14 +195,14 @@ export default async function ProductDetailPage({ params }: Props) {
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="text-4xl font-bold tracking-tight">
-                  {product.quantity as number}
+                  {effectiveQty}
                 </span>
                 <span className="text-sm text-muted-foreground">
                   units
                 </span>
               </div>
               <StockBar
-                quantity={Number(product.quantity)}
+                quantity={effectiveQty}
                 reorder={Number(product.reorderLevel)}
               />
               <p className="text-xs text-muted-foreground">
