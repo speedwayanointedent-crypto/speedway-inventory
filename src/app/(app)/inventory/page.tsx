@@ -40,16 +40,12 @@ interface ProductItem {
   _id: string;
   name: string;
   productCode: string;
-  sku: string;
   shop?: { name?: string; code?: string };
   storageLocation?: string;
   category?: { name?: string };
-  costPrice: number;
-  sellingPrice: number;
-  wholesalePrice: number;
+  price: number;
   quantity: number;
   reorderLevel: number;
-  unitType: string;
   status: string;
   images?: string[];
 }
@@ -115,7 +111,7 @@ export default async function InventoryPage({ searchParams }: Props) {
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
-        <SearchInput placeholder="Search by name, code, SKU, barcode, location..." />
+        <SearchInput placeholder="Search by name, code, or location..." />
         <FilterSelect
           label="Shop"
           param="shop"
@@ -202,7 +198,7 @@ function ProductCard({ product: p }: { product: ProductItem }) {
               className="text-[10px] h-5 px-1.5 shadow-sm backdrop-blur"
             >
               {status.variant === "warning" && <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />}
-              {p.quantity} {p.unitType.toLowerCase()}
+              {p.quantity} units
             </Badge>
           </div>
           <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -227,13 +223,13 @@ function ProductCard({ product: p }: { product: ProductItem }) {
             <div>
               <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Price</p>
               <p className="text-sm font-bold text-primary">
-                {formatCurrency(p.sellingPrice)}
+                {formatCurrency(p.price)}
               </p>
             </div>
             <div className="text-right">
-              <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Wholesale</p>
+              <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Stock</p>
               <p className="text-xs font-medium text-muted-foreground">
-                {formatCurrency(p.wholesalePrice)}
+                {p.quantity} units
               </p>
             </div>
           </div>

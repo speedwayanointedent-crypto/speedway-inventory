@@ -982,7 +982,7 @@ export async function getLowStockNotifications() {
     status: "ACTIVE",
     $expr: { $lte: ["$quantity", "$reorderLevel"] },
   })
-    .select("_id name productCode sku quantity reorderLevel supplier")
+    .select("_id name productCode quantity reorderLevel supplier")
     .populate("supplier", "companyName")
     .sort({ quantity: 1 })
     .limit(10)

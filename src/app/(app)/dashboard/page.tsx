@@ -335,7 +335,7 @@ export default async function DashboardPage() {
               name: string;
               totalSold: number;
               quantity: number;
-              sellingPrice: number;
+              price: number;
             }>).length === 0 && (
               <p className="text-sm text-muted-foreground py-6 text-center">No sales yet</p>
             )}
@@ -344,7 +344,7 @@ export default async function DashboardPage() {
               name: string;
               totalSold: number;
               quantity: number;
-              sellingPrice: number;
+              price: number;
             }>).map((p, i) => (
               <div key={p._id} className="flex items-center justify-between gap-3 p-2 -mx-2 rounded-lg hover:bg-muted/40 transition-colors">
                 <div className="flex items-center gap-3 min-w-0">
@@ -357,7 +357,7 @@ export default async function DashboardPage() {
                   </div>
                 </div>
                 <Badge variant="outline" className="shrink-0 text-[10px]">
-                  {formatCurrency(p.sellingPrice)}
+                  {formatCurrency(p.price)}
                 </Badge>
               </div>
             ))}

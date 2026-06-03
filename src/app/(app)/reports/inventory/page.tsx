@@ -63,8 +63,7 @@ export default async function InventoryReportPage() {
               <TableHead>Product</TableHead>
               <TableHead>Category</TableHead>
               <TableHead className="text-center">Stock</TableHead>
-              <TableHead className="text-right">Cost</TableHead>
-              <TableHead className="text-right">Selling</TableHead>
+              <TableHead className="text-right">Price</TableHead>
               <TableHead className="text-right">Value</TableHead>
               <TableHead>Status</TableHead>
             </TableRow>
@@ -77,8 +76,7 @@ export default async function InventoryReportPage() {
               category?: { name?: string };
               quantity: number;
               reorderLevel: number;
-              costPrice: number;
-              sellingPrice: number;
+              price: number;
             }>).map((p) => {
               const status = getStockStatus(p.quantity, p.reorderLevel);
               return (
@@ -90,13 +88,10 @@ export default async function InventoryReportPage() {
                   <TableCell className="text-sm">{p.category?.name || "—"}</TableCell>
                   <TableCell className="text-center font-semibold">{p.quantity}</TableCell>
                   <TableCell className="text-right text-sm">
-                    {formatCurrency(p.costPrice)}
-                  </TableCell>
-                  <TableCell className="text-right text-sm">
-                    {formatCurrency(p.sellingPrice)}
+                    {formatCurrency(p.price)}
                   </TableCell>
                   <TableCell className="text-right font-semibold">
-                    {formatCurrency(p.quantity * p.sellingPrice)}
+                    {formatCurrency(p.quantity * p.price)}
                   </TableCell>
                   <TableCell>
                     <Badge variant={status.variant}>{status.label}</Badge>

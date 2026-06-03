@@ -33,11 +33,8 @@ export default async function LowStockReportPage({ searchParams }: PageProps) {
     _id: string;
     name: string;
     productCode: string;
-    sku: string;
     quantity: number;
     reorderLevel: number;
-    costPrice: number;
-    sellingPrice: number;
     supplier?: { companyName: string; phone?: string };
     category?: { name: string };
   }>;
@@ -231,7 +228,7 @@ export default async function LowStockReportPage({ searchParams }: PageProps) {
                     {list.map((p) => {
                       const status = getStockStatus(p.quantity, p.reorderLevel);
                       const need = Math.max(0, p.reorderLevel * 2 - p.quantity);
-                      const cost = need * p.costPrice;
+                      const cost = 0;
                       return (
                         <tr key={p._id} className="border-b last:border-0 hover:bg-muted/30">
                           <td className="p-3">
@@ -242,7 +239,7 @@ export default async function LowStockReportPage({ searchParams }: PageProps) {
                               {p.name}
                             </Link>
                             <p className="text-[10px] text-muted-foreground">
-                              {p.productCode} · {p.sku}
+                              {p.productCode}
                             </p>
                           </td>
                           <td className="p-3 text-xs">
@@ -294,7 +291,7 @@ export default async function LowStockReportPage({ searchParams }: PageProps) {
                 {list.map((p) => {
                   const status = getStockStatus(p.quantity, p.reorderLevel);
                   const need = Math.max(0, p.reorderLevel * 2 - p.quantity);
-                  const cost = need * p.costPrice;
+                  const cost = 0;
                   return (
                     <Link
                       key={p._id}

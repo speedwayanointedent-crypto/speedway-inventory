@@ -21,7 +21,6 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { productSchema, type ProductInput } from "@/lib/validations";
 import { createProduct, updateProduct } from "@/actions/inventory";
-import { UNIT_TYPES } from "@/lib/constants";
 import { generateProductCode } from "@/lib/utils";
 
 interface ShopOpt {

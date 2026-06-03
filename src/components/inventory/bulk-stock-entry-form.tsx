@@ -19,7 +19,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -46,10 +45,8 @@ import {
 
 interface ParsedRow {
   productCode?: string;
-  sku?: string;
   quantity?: string;
   unitCost?: string;
-  updateCostPrice?: string;
 }
 
 interface SupplierOption {
@@ -83,14 +80,13 @@ export function BulkStockEntryForm({ suppliers, shops }: Props) {
   const [paymentMethod, setPaymentMethod] = useState<StockPaymentMethod>("CASH");
   const [amountPaid, setAmountPaid] = useState("");
   const [notes, setNotes] = useState("");
-  const [updateAllCost, setUpdateAllCost] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function downloadTemplate() {
     const csv = [
-      "productCode,sku,quantity,unitCost,updateCostPrice",
-      "SW-100001,BRK-10001,25,45,false",
-      "SW-100002,BRK-10002,10,32,true",
+      "productCode,quantity,unitCost",
+      "SW-100001,25,45",
+      "SW-100002,10,32",
     ].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -108,8 +104,8 @@ export function BulkStockEntryForm({ suppliers, shops }: Props) {
       complete: (res) => {
         const errs: { row: number; reason: string }[] = [];
         res.data.forEach((row, i) => {
-          if (!row.productCode && !row.sku) {
-            errs.push({ row: i + 2, reason: "Missing product code or SKU" });
+          if (!row.productCode) {
+            errs.push({ row: i + 2, reason: "Missing product code" });
             return;
           }
           const qty = Number(row.quantity);
@@ -161,12 +157,8 @@ export function BulkStockEntryForm({ suppliers, shops }: Props) {
           notes: notes || undefined,
           rows: rows.map((r) => ({
             productCode: r.productCode,
-            sku: r.sku,
             quantity: Number(r.quantity),
             unitCost: Number(r.unitCost),
-            updateCostPrice: updateAllCost
-              ? true
-              : r.updateCostPrice === "true" || r.updateCostPrice === "1",
           })),
         });
         if (res.success) {
@@ -277,16 +269,7 @@ export function BulkStockEntryForm({ suppliers, shops }: Props) {
               />
             </div>
           </div>
-          <div className="flex items-center gap-2 pt-1">
-            <Checkbox
-              id="update-all-cost"
-              checked={updateAllCost}
-              onCheckedChange={(c) => setUpdateAllCost(Boolean(c))}
-            />
-            <Label htmlFor="update-all-cost" className="text-sm cursor-pointer">
-              Update product cost price for all rows
-            </Label>
-          </div>
+
           <div>
             <Label>Notes</Label>
             <Textarea
@@ -311,10 +294,7 @@ export function BulkStockEntryForm({ suppliers, shops }: Props) {
           <FileSpreadsheet className="h-10 w-10 mx-auto text-muted-foreground" />
           <p className="font-semibold mt-3">Upload a CSV file</p>
           <p className="text-xs text-muted-foreground mt-1">
-            Required columns: <code className="bg-muted px-1.5 py-0.5 rounded text-[10px]">productCode</code> (or <code className="bg-muted px-1.5 py-0.5 rounded text-[10px]">sku</code>), <code className="bg-muted px-1.5 py-0.5 rounded text-[10px]">quantity</code>, <code className="bg-muted px-1.5 py-0.5 rounded text-[10px]">unitCost</code>
-          </p>
-          <p className="text-[10px] text-muted-foreground mt-1">
-            Optional: <code className="bg-muted px-1 rounded text-[10px]">updateCostPrice</code> (true/false)
+            Required columns: <code className="bg-muted px-1.5 py-0.5 rounded text-[10px]">productCode</code>, <code className="bg-muted px-1.5 py-0.5 rounded text-[10px]">quantity</code>, <code className="bg-muted px-1.5 py-0.5 rounded text-[10px]">unitCost</code>
           </p>
           <div className="flex items-center justify-center gap-2 mt-4 flex-wrap">
             <Button onClick={() => fileInputRef.current?.click()}>
@@ -390,11 +370,9 @@ export function BulkStockEntryForm({ suppliers, shops }: Props) {
               <TableHeader>
                 <TableRow>
                   <TableHead>Product Code</TableHead>
-                  <TableHead>SKU</TableHead>
                   <TableHead className="text-right">Qty</TableHead>
                   <TableHead className="text-right">Unit Cost</TableHead>
                   <TableHead className="text-right">Total</TableHead>
-                  <TableHead>Update Cost?</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -408,26 +386,10 @@ export function BulkStockEntryForm({ suppliers, shops }: Props) {
                           <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-xs font-mono">
-                        {r.sku || (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
                       <TableCell className="text-right tabular-nums">{qty}</TableCell>
                       <TableCell className="text-right tabular-nums">{formatCurrency(cost)}</TableCell>
                       <TableCell className="text-right tabular-nums font-medium">
                         {formatCurrency(qty * cost)}
-                      </TableCell>
-                      <TableCell>
-                        {updateAllCost ? (
-                          <Badge variant="success" className="text-[10px]">
-                            All rows
-                          </Badge>
-                        ) : r.updateCostPrice === "true" || r.updateCostPrice === "1" ? (
-                          <Badge variant="success" className="text-[10px]">Yes</Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-[10px]">No</Badge>
-                        )}
                       </TableCell>
                     </TableRow>
                   );

@@ -83,7 +83,6 @@ export default async function StockEntryDetailPage({ params }: Props) {
       product: string;
       productName: string;
       productCode: string;
-      sku: string;
       quantity: number;
       unitCost: number;
       totalCost: number;

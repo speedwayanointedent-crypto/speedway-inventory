@@ -43,11 +43,8 @@ interface Product {
   _id: string;
   name: string;
   productCode: string;
-  sellingPrice: number;
-  wholesalePrice: number;
-  costPrice: number;
+  price: number;
   quantity: number;
-  unitType: string;
 }
 
 interface CartItem {
@@ -56,10 +53,8 @@ interface CartItem {
   productCode: string;
   quantity: number;
   unitPrice: number;
-  costPrice: number;
   discount: number;
   stock: number;
-  unitType: string;
 }
 
 const PAYMENT_ICONS: Record<PaymentMethod, React.ComponentType<{ className?: string }>> = {
@@ -127,11 +122,9 @@ export function POSClient({ taxRate }: { taxRate: number }) {
           productName: p.name,
           productCode: p.productCode,
           quantity: 1,
-          unitPrice: isWholesale ? p.wholesalePrice : p.sellingPrice,
-          costPrice: p.costPrice,
+          unitPrice: p.price,
           discount: 0,
           stock: p.quantity,
-          unitType: p.unitType,
         },
       ];
     });
@@ -191,7 +184,7 @@ export function POSClient({ taxRate }: { taxRate: number }) {
         productCode: i.productCode,
         quantity: i.quantity,
         unitPrice: i.unitPrice,
-        costPrice: i.costPrice,
+        costPrice: 0,
         discount: i.discount,
         subtotal: i.unitPrice * i.quantity,
       }));
@@ -242,7 +235,7 @@ export function POSClient({ taxRate }: { taxRate: number }) {
               ref={searchRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by name, code, SKU or barcode..."
+              placeholder="Search by name or code..."
               className="pl-9 h-11"
               autoFocus
             />
@@ -287,7 +280,7 @@ export function POSClient({ taxRate }: { taxRate: number }) {
                     </p>
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-sm font-bold text-primary">
-                        {formatCurrency(isWholesale ? p.wholesalePrice : p.sellingPrice)}
+                        {formatCurrency(p.price)}
                       </span>
                       <Badge variant={p.quantity > 10 ? "outline" : "warning"} className="text-[9px]">
                         {p.quantity}

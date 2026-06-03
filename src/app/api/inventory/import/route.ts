@@ -8,14 +8,10 @@ import { logActivity } from "@/lib/activity";
 interface ImportRow {
   name?: string;
   productCode?: string;
-  sku?: string;
   category?: string;
-  costPrice?: string | number;
-  sellingPrice?: string | number;
-  wholesalePrice?: string | number;
+  price?: string | number;
   quantity?: string | number;
   reorderLevel?: string | number;
-  unitType?: string;
   brand?: string;
   vehicleCompatibility?: string;
   status?: string;
@@ -43,13 +39,11 @@ export async function POST(req: Request) {
 
   for (const row of rows) {
     try {
-      if (!row.name || !row.productCode || !row.sku || !row.category) {
+      if (!row.name || !row.productCode || !row.category) {
         failed++;
         continue;
       }
-      const cost = Number(row.costPrice) || 0;
-      const selling = Number(row.sellingPrice) || 0;
-      const wholesale = Number(row.wholesalePrice) || selling;
+      const price = Number(row.price) || 0;
       const qty = Number(row.quantity) || 0;
       const reorder = Number(row.reorderLevel) || 10;
       const vehicle = (row.vehicleCompatibility || "")
@@ -107,16 +101,12 @@ export async function POST(req: Request) {
       const product = await Product.create({
         name: row.name.trim(),
         productCode: row.productCode.trim(),
-        sku: row.sku.trim(),
         category: categoryId,
         shop: shopId,
         storageLocation: row.storageLocation?.trim() || undefined,
-        costPrice: cost,
-        sellingPrice: selling,
-        wholesalePrice: wholesale,
+        price,
         quantity: qty,
         reorderLevel: reorder,
-        unitType: row.unitType || "Piece",
         brand: row.brand,
         vehicleCompatibility: vehicle,
         status: (row.status as "ACTIVE" | "INACTIVE" | "DISCONTINUED") || "ACTIVE",

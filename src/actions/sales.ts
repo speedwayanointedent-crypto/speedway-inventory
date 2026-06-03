@@ -275,8 +275,6 @@ export async function searchProductsForPOS(query: string) {
     filter.$or = [
       { name: { $regex: query, $options: "i" } },
       { productCode: { $regex: query, $options: "i" } },
-      { sku: { $regex: query, $options: "i" } },
-      { barcode: query },
     ];
   }
   const items = await Product.find(filter).limit(20).lean();

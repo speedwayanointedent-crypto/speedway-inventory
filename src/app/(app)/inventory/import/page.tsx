@@ -13,14 +13,10 @@ import { PageHeader } from "@/components/layout/page-header";
 interface ParsedRow {
   name?: string;
   productCode?: string;
-  sku?: string;
   category?: string;
-  costPrice?: string;
-  sellingPrice?: string;
-  wholesalePrice?: string;
+  price?: string;
   quantity?: string;
   reorderLevel?: string;
-  unitType?: string;
   brand?: string;
   vehicleCompatibility?: string;
   status?: string;
@@ -34,8 +30,8 @@ export default function ImportPage() {
 
   function downloadTemplate() {
     const csv = [
-      "name,productCode,sku,category,costPrice,sellingPrice,wholesalePrice,quantity,reorderLevel,unitType,brand,vehicleCompatibility,status",
-      "Brake Pad Front,SW-100001,BRK-10001,Brakes,45,80,70,25,10,Set,SpeedMaster,Toyota Camry 2007-2017,ACTIVE",
+      "name,productCode,category,price,quantity,reorderLevel,brand,vehicleCompatibility,status",
+      "Brake Pad Front,SW-100001,Brakes,80,25,10,SpeedMaster,Toyota Camry 2007-2017,ACTIVE",
     ].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -53,7 +49,7 @@ export default function ImportPage() {
       complete: (res) => {
         const errs: { row: number; reason: string }[] = [];
         res.data.forEach((row, i) => {
-          if (!row.name || !row.productCode || !row.sku || !row.category) {
+          if (!row.name || !row.productCode || !row.category) {
             errs.push({ row: i + 2, reason: "Missing required fields" });
           }
         });
@@ -108,7 +104,7 @@ export default function ImportPage() {
           <FileSpreadsheet className="h-10 w-10 mx-auto text-muted-foreground" />
           <p className="font-semibold mt-3">Upload a CSV file</p>
           <p className="text-xs text-muted-foreground mt-1">
-            Required columns: name, productCode, sku, category, costPrice, sellingPrice
+            Required columns: name, productCode, category, price
           </p>
           <label htmlFor="csv">
             <Button asChild className="mt-4">
@@ -152,7 +148,6 @@ export default function ImportPage() {
                 <TableHead>Name</TableHead>
                 <TableHead>Code</TableHead>
                 <TableHead>Category</TableHead>
-                <TableHead className="text-right">Cost</TableHead>
                 <TableHead className="text-right">Price</TableHead>
                 <TableHead className="text-right">Qty</TableHead>
                 <TableHead>Status</TableHead>
@@ -164,8 +159,7 @@ export default function ImportPage() {
                   <TableCell className="text-sm">{r.name}</TableCell>
                   <TableCell className="text-xs font-mono">{r.productCode}</TableCell>
                   <TableCell className="text-sm">{r.category}</TableCell>
-                  <TableCell className="text-right text-sm">{r.costPrice}</TableCell>
-                  <TableCell className="text-right text-sm">{r.sellingPrice}</TableCell>
+                  <TableCell className="text-right text-sm">{r.price}</TableCell>
                   <TableCell className="text-right text-sm">{r.quantity}</TableCell>
                   <TableCell>
                     <Badge variant="outline">{r.status || "ACTIVE"}</Badge>

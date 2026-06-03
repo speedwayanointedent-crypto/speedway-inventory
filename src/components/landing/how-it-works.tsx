@@ -14,7 +14,7 @@ const STEPS = [
     icon: ScanLine,
     title: "Ring up sales",
     description:
-      "Search by name, scan a barcode, or tap to add. Split payments across cash, MoMo, and bank — SpeedWay handles the math.",
+      "Search by name or code, then tap to add. Split payments across cash, MoMo, and bank — SpeedWay handles the math.",
   },
   {
     step: "03",

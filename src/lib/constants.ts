@@ -79,18 +79,6 @@ export const TRANSACTION_TYPES = [
 ] as const;
 export type TransactionType = (typeof TRANSACTION_TYPES)[number];
 
-export const UNIT_TYPES = [
-  "Piece",
-  "Set",
-  "Pair",
-  "Box",
-  "Pack",
-  "Carton",
-  "Litre",
-  "Kilogram",
-  "Metre",
-] as const;
-
 export const PRODUCT_STATUS = ["ACTIVE", "INACTIVE", "DISCONTINUED"] as const;
 export type ProductStatus = (typeof PRODUCT_STATUS)[number];
 

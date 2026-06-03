@@ -40,12 +40,6 @@ export function generateProductCode(prefix = "SW"): string {
   return `${prefix}-${random}`;
 }
 
-export function generateSKU(category: string): string {
-  const cat = category.slice(0, 3).toUpperCase();
-  const random = Math.floor(10000 + Math.random() * 90000);
-  return `${cat}-${random}`;
-}
-
 export function generateStockReferenceNumber(prefix = "STK"): string {
   const now = new Date();
   const ymd = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
@@ -86,12 +80,6 @@ export function getStockStatus(quantity: number, reorderLevel: number) {
   if (quantity <= 0) return { label: "Out of Stock", variant: "destructive" as const };
   if (quantity <= reorderLevel) return { label: "Low Stock", variant: "warning" as const };
   return { label: "In Stock", variant: "success" as const };
-}
-
-export function calculateProfit(sellingPrice: number, costPrice: number) {
-  const profit = sellingPrice - costPrice;
-  const margin = costPrice > 0 ? (profit / costPrice) * 100 : 0;
-  return { profit, margin };
 }
 
 export function safeJSON<T>(value: unknown): T {
