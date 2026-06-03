@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import mongoose from "mongoose";
 import { connectDB } from "@/lib/db";
 import { Product, Category, InventoryTransaction } from "@/models";
 import { requireAuth, requirePermission } from "@/lib/session";
@@ -215,11 +216,63 @@ export async function getProducts(opts?: {
 export async function getProduct(id: string) {
   await requireAuth();
   await connectDB();
-  const product = await Product.findById(id)
-    .populate("category", "name")
-    .populate("supplier", "companyName")
-    .populate("shop", "name code city address")
-    .lean();
+  const [product] = await Product.aggregate([
+    { $match: { _id: new mongoose.Types.ObjectId(id) } },
+    {
+      $lookup: {
+        from: "categories",
+        localField: "category",
+        foreignField: "_id",
+        as: "category",
+      },
+    },
+    { $unwind: { path: "$category", preserveNullAndEmptyArrays: true } },
+    {
+      $lookup: {
+        from: "suppliers",
+        localField: "supplier",
+        foreignField: "_id",
+        as: "supplier",
+      },
+    },
+    { $unwind: { path: "$supplier", preserveNullAndEmptyArrays: true } },
+    {
+      $lookup: {
+        from: "shops",
+        localField: "shop",
+        foreignField: "_id",
+        as: "shop",
+      },
+    },
+    { $unwind: { path: "$shop", preserveNullAndEmptyArrays: true } },
+    {
+      $project: {
+        "category.name": 1,
+        "supplier.companyName": 1,
+        "shop.name": 1,
+        "shop.code": 1,
+        "shop.city": 1,
+        "shop.address": 1,
+        name: 1,
+        productCode: 1,
+        brand: 1,
+        vehicleCompatibility: 1,
+        description: 1,
+        price: 1,
+        orientation: 1,
+        quantity: 1,
+        quantityLeft: 1,
+        quantityRight: 1,
+        reorderLevel: 1,
+        images: 1,
+        storageLocation: 1,
+        status: 1,
+        totalSold: 1,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    },
+  ]);
   if (!product) return null;
   return safeJSON<unknown>(product);
 }

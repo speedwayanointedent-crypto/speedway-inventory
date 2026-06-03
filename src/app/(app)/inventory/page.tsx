@@ -78,9 +78,12 @@ export default async function InventoryPage({ searchParams }: Props) {
 
   const stats = {
     total,
-    inStock: products.filter((p) => p.quantity > p.reorderLevel).length,
-    lowStock: products.filter((p) => p.quantity > 0 && p.quantity <= p.reorderLevel).length,
-    outOfStock: products.filter((p) => p.quantity === 0).length,
+    inStock: products.filter((p) => getEffectiveQuantity(p) > p.reorderLevel).length,
+    lowStock: products.filter((p) => {
+      const q = getEffectiveQuantity(p);
+      return q > 0 && q <= p.reorderLevel;
+    }).length,
+    outOfStock: products.filter((p) => getEffectiveQuantity(p) === 0).length,
   };
 
   return (
