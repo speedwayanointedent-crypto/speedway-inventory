@@ -45,6 +45,9 @@ interface ProductItem {
   category?: { name?: string };
   price: number;
   quantity: number;
+  quantityLeft?: number;
+  quantityRight?: number;
+  orientation?: string;
   reorderLevel: number;
   status: string;
   images?: string[];
@@ -230,7 +233,9 @@ function ProductCard({ product: p }: { product: ProductItem }) {
             <div className="text-right">
               <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Stock</p>
               <p className="text-xs font-medium text-muted-foreground">
-                {qty} units
+                {p.orientation === "LEFT_RIGHT"
+                  ? `${p.quantityLeft ?? 0}L / ${p.quantityRight ?? 0}R`
+                  : `${qty} units`}
               </p>
             </div>
           </div>

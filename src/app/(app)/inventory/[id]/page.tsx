@@ -114,12 +114,37 @@ export default async function ProductDetailPage({ params }: Props) {
               </div>
               <Separator />
               <div className="grid grid-cols-2 gap-3 text-xs">
-                <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <Box className="h-3.5 w-3.5" /> In stock
-                </div>
-                <div className="text-right font-semibold">
-                  {effectiveQty}
-                </div>
+                {product.orientation === "LEFT_RIGHT" ? (
+                  <>
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <Box className="h-3.5 w-3.5" /> Left stock
+                    </div>
+                    <div className="text-right font-semibold">
+                      {product.quantityLeft as number}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <Box className="h-3.5 w-3.5" /> Right stock
+                    </div>
+                    <div className="text-right font-semibold">
+                      {product.quantityRight as number}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-muted-foreground font-medium text-foreground/80">
+                      <ShoppingBag className="h-3.5 w-3.5" /> Total
+                    </div>
+                    <div className="text-right font-semibold text-foreground">
+                      {effectiveQty}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <Box className="h-3.5 w-3.5" /> In stock
+                    </div>
+                    <div className="text-right font-semibold">
+                      {effectiveQty}
+                    </div>
+                  </>
+                )}
                 <div className="flex items-center gap-1.5 text-muted-foreground">
                   <Hash className="h-3.5 w-3.5" /> Reorder at
                 </div>
@@ -201,6 +226,12 @@ export default async function ProductDetailPage({ params }: Props) {
                   units
                 </span>
               </div>
+              {product.orientation === "LEFT_RIGHT" && (
+                <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
+                  <span>Left: <strong className="text-foreground">{(product.quantityLeft as number) ?? 0}</strong></span>
+                  <span>Right: <strong className="text-foreground">{(product.quantityRight as number) ?? 0}</strong></span>
+                </div>
+              )}
               <StockBar
                 quantity={effectiveQty}
                 reorder={Number(product.reorderLevel)}
