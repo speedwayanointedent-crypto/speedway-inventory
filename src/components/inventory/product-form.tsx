@@ -22,6 +22,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { productSchema, type ProductInput } from "@/lib/validations";
 import { createProduct, updateProduct } from "@/actions/inventory";
 import { generateProductCode } from "@/lib/utils";
+import { ImageUpload } from "./image-upload";
 
 interface ShopOpt {
   _id: string;
@@ -82,6 +83,7 @@ export function ProductForm({
 
   const category = watch("category");
   const orientation = watch("orientation");
+  const images = watch("images");
   const [vehicles, setVehicles] = React.useState<string>(
     (product?.vehicleCompatibility ?? []).join(", ")
   );
@@ -193,6 +195,12 @@ export function ProductForm({
             <div className="md:col-span-2">
               <Label htmlFor="description">Description</Label>
               <Textarea id="description" rows={3} {...register("description")} />
+            </div>
+            <div className="md:col-span-2">
+              <ImageUpload
+                value={images}
+                onChange={(urls) => setValue("images", urls, { shouldDirty: true })}
+              />
             </div>
           </div>
         </CardContent>
