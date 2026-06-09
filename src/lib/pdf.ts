@@ -7,7 +7,6 @@ export interface ReceiptPdfData {
   saleNumber: string;
   publicId: string;
   date: string;
-  customerName: string;
   staffName: string;
   items: Array<{
     productName: string;
@@ -47,8 +46,6 @@ export async function generateReceiptPDF(data: ReceiptPdfData): Promise<Uint8Arr
   doc.text(`Receipt: ${data.saleNumber}`, 4, y);
   y += 4;
   doc.text(`Date: ${data.date}`, 4, y);
-  y += 4;
-  doc.text(`Customer: ${data.customerName}`, 4, y);
   y += 4;
   doc.text(`Cashier: ${data.staffName}`, 4, y);
   y += 3;

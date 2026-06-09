@@ -7,11 +7,7 @@ import {
   LayoutDashboard,
   Package,
   ShoppingCart,
-  Users,
-  Truck,
   Receipt,
-  RotateCcw,
-  BarChart3,
   Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";

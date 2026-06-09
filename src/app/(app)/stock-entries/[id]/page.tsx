@@ -3,7 +3,6 @@ import Link from "next/link";
 import {
   ArrowLeft,
   Receipt,
-  Building2,
   Calendar,
   Hash,
   Wallet,
@@ -31,7 +30,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { StockEntryPayment } from "@/components/inventory/stock-entry-payment";
 import { StockEntryCancel } from "@/components/inventory/stock-entry-cancel";
 import {
   STOCK_ENTRY_STATUS_LABELS,
@@ -76,8 +74,6 @@ export default async function StockEntryDetailPage({ params }: Props) {
   const e = entry as unknown as {
     _id: string;
     referenceNumber: string;
-    supplier?: string;
-    supplierName?: string;
     shopName?: string;
     lineItems: Array<{
       product: string;
@@ -214,11 +210,6 @@ export default async function StockEntryDetailPage({ params }: Props) {
             </div>
             <div className="p-5 sm:p-6 border-t md:border-t-0 md:border-l border-border/60 space-y-3">
               <div className="grid grid-cols-1 gap-3 text-sm">
-                <DetailRow
-                  icon={Building2}
-                  label="Supplier"
-                  value={e.supplierName || "Unspecified"}
-                />
                 {e.shopName && (
                   <DetailRow icon={Store} label="Receiving shop" value={e.shopName} />
                 )}
@@ -336,11 +327,6 @@ export default async function StockEntryDetailPage({ params }: Props) {
                 </p>
               </div>
             </div>
-            {e.amountDue > 0.01 && status !== "CANCELLED" && (
-              <div className="pt-1 print:hidden">
-                <StockEntryPayment entryId={e._id} amountDue={e.amountDue} />
-              </div>
-            )}
             {e.amountDue <= 0.01 && status !== "CANCELLED" && (
               <p className="text-xs text-emerald-600 flex items-center gap-1.5">
                 <CheckCircle2 className="h-3.5 w-3.5" /> Fully paid

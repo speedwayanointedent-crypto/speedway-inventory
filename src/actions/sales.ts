@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { v4 as uuidv4 } from "uuid";
 import mongoose from "mongoose";
 import { connectDB } from "@/lib/db";
-import { Sale, Product, Customer, InventoryTransaction } from "@/models";
+import { Sale, Product, InventoryTransaction } from "@/models";
 import { requirePermission, requireAuth } from "@/lib/session";
 import { saleSchema, type SaleInput } from "@/lib/validations";
 import { PERMISSIONS } from "@/lib/constants";
@@ -81,8 +81,6 @@ export async function createSale(input: SaleInput) {
           {
             saleNumber,
             publicId,
-            customer: data.customer || undefined,
-            customerName: data.customerName,
             items: data.items,
             subtotal: data.subtotal,
             totalDiscount: data.totalDiscount,
@@ -97,24 +95,12 @@ export async function createSale(input: SaleInput) {
             staffName: user.name,
             status: "COMPLETED",
             notes: data.notes,
-            isWholesale: data.isWholesale,
           },
         ],
         { session }
       );
 
       saleId = sale._id.toString();
-
-      if (data.customer) {
-        await Customer.findByIdAndUpdate(
-          data.customer,
-          {
-            $inc: { totalSpending: data.total },
-            $set: { lastPurchaseDate: new Date() },
-          },
-          { session }
-        );
-      }
     });
   } catch (error) {
     await session.endSession();
@@ -129,14 +115,14 @@ export async function createSale(input: SaleInput) {
   await createNotification({
     type: "SALE_COMPLETED",
     title: "Sale completed",
-    message: `Sale ${saleNumber} for ${data.customerName} — Total ${data.total.toFixed(2)}`,
+    message: `Sale ${saleNumber} — Total ${data.total.toFixed(2)}`,
     link: `/sales/${saleId}`,
   });
 
   await logActivity(user, {
     action: "CREATE_SALE",
     module: "SALES",
-    description: `Created sale ${saleNumber} for ${data.customerName} (${data.total.toFixed(2)})`,
+    description: `Created sale ${saleNumber} (${data.total.toFixed(2)})`,
     metadata: { saleId, saleNumber, total: data.total },
   });
 
@@ -189,12 +175,6 @@ export async function refundSale(saleId: string, reason: string) {
   sale.refundedAmount = sale.total;
   sale.notes = (sale.notes ? sale.notes + "\n" : "") + `Refunded: ${reason}`;
   await sale.save();
-
-  if (sale.customer) {
-    await Customer.findByIdAndUpdate(sale.customer, {
-      $inc: { totalSpending: -sale.total },
-    });
-  }
 
   await logActivity(user, {
     action: "REFUND",
@@ -259,7 +239,6 @@ export async function getSales(opts?: {
   if (opts?.search) {
     filter.$or = [
       { saleNumber: { $regex: opts.search, $options: "i" } },
-      { customerName: { $regex: opts.search, $options: "i" } },
     ];
   }
   if (opts?.status && opts.status !== "all") filter.status = opts.status;

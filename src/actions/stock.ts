@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import mongoose from "mongoose";
 import { connectDB } from "@/lib/db";
-import { Product, StockEntry, InventoryTransaction, Supplier, Shop } from "@/models";
+import { Product, StockEntry, InventoryTransaction, Shop } from "@/models";
 import { requirePermission } from "@/lib/session";
 import { logActivity } from "@/lib/activity";
 import { createNotification } from "@/lib/notifications";
@@ -23,7 +23,6 @@ import {
   subtractStockLine,
 } from "@/lib/utils";
 import type { IStockLineItem } from "@/models/StockEntry";
-import type { ISupplier } from "@/models/Supplier";
 
 function computeTotals(items: Array<{ quantity: number; unitCost: number }>) {
   const totalQuantity = items.reduce((s, i) => s + i.quantity, 0);
@@ -69,13 +68,6 @@ export async function createStockEntry(input: StockEntryInput) {
         data.amountPaid || 0,
         data.paymentStatus
       );
-
-      let supplierName: string | undefined;
-      let supplierDoc: (mongoose.Document & ISupplier) | null = null;
-      if (data.supplier) {
-        supplierDoc = await Supplier.findById(data.supplier).session(session);
-        if (supplierDoc) supplierName = supplierDoc.companyName;
-      }
 
       let shopName: string | undefined;
       if (data.shop) {
@@ -131,8 +123,6 @@ export async function createStockEntry(input: StockEntryInput) {
         [
           {
             referenceNumber,
-            supplier: data.supplier || undefined,
-            supplierName,
             shop: data.shop || undefined,
             shopName,
             lineItems,
@@ -162,14 +152,6 @@ export async function createStockEntry(input: StockEntryInput) {
       );
 
       entryId = entry._id.toString();
-
-      if (supplierDoc) {
-        supplierDoc.totalPurchases += totals.totalCost;
-        supplierDoc.totalPaid += data.amountPaid || 0;
-        supplierDoc.totalDue = Math.max(0, supplierDoc.totalDue + amountDue);
-        supplierDoc.lastPurchaseDate = new Date();
-        await supplierDoc.save({ session });
-      }
     });
   } catch (err) {
     await session.endSession();
@@ -242,7 +224,6 @@ export async function createStockEntry(input: StockEntryInput) {
   revalidatePath("/dashboard");
   revalidatePath("/reports");
   revalidatePath("/reports/stock-entries");
-  revalidatePath("/reports/supplier-purchases");
 
   return { success: true, id: entryId, referenceNumber };
 }
@@ -385,27 +366,6 @@ export async function updateStockEntry(id: string, input: StockEntryUpdateInput)
         });
       }
 
-      if (data.supplier !== undefined) {
-        if (entry.supplier && entry.supplier.toString() !== data.supplier) {
-          const oldSup = await Supplier.findById(entry.supplier).session(session);
-          if (oldSup) {
-            oldSup.totalPurchases = Math.max(0, oldSup.totalPurchases - entry.totalCost);
-            oldSup.totalDue = Math.max(0, oldSup.totalDue - entry.amountDue);
-            await oldSup.save({ session });
-          }
-        }
-        if (data.supplier) {
-          const newSup = await Supplier.findById(data.supplier).session(session);
-          if (newSup) {
-            entry.supplierName = newSup.companyName;
-            entry.supplier = newSup._id;
-          }
-        } else {
-          entry.supplier = undefined;
-          entry.supplierName = undefined;
-        }
-      }
-
       if (data.shop !== undefined) {
         if (data.shop) {
           const shopDoc = await Shop.findById(data.shop).session(session);
@@ -434,13 +394,6 @@ export async function updateStockEntry(id: string, input: StockEntryUpdateInput)
       entry.totalCost = totals.totalCost;
 
       if (data.amountPaid !== undefined) {
-        if (entry.supplier && data.supplier === undefined) {
-          const sup = await Supplier.findById(entry.supplier).session(session);
-          if (sup) {
-            const supplierDelta = (data.amountPaid || 0) - entry.amountPaid;
-            sup.totalPaid = Math.max(0, sup.totalPaid + supplierDelta);
-          }
-        }
         entry.amountPaid = data.amountPaid;
       }
 
@@ -452,20 +405,6 @@ export async function updateStockEntry(id: string, input: StockEntryUpdateInput)
       }
 
       await entry.save({ session });
-
-      if (entry.supplier) {
-        const sup = await Supplier.findById(entry.supplier).session(session);
-        if (sup) {
-          const entries = await StockEntry.find({
-            supplier: sup._id,
-            status: { $ne: "CANCELLED" },
-          }).session(session);
-          sup.totalPurchases = entries.reduce((s, e) => s + e.totalCost, 0);
-          sup.totalPaid = entries.reduce((s, e) => s + e.amountPaid, 0);
-          sup.totalDue = Math.max(0, sup.totalPurchases - sup.totalPaid);
-          await sup.save({ session });
-        }
-      }
     });
   } catch (err) {
     await session.endSession();
@@ -488,7 +427,6 @@ export async function updateStockEntry(id: string, input: StockEntryUpdateInput)
   revalidatePath(`/stock-entries/${id}`);
   revalidatePath("/inventory");
   revalidatePath("/reports/stock-entries");
-  revalidatePath("/reports/supplier-purchases");
   return { success: true };
 }
 
@@ -543,16 +481,6 @@ export async function cancelStockEntry(id: string, reason: string) {
       entry.cancelledByName = user.name;
       entry.cancelReason = reason;
       await entry.save({ session });
-
-      if (entry.supplier) {
-        const sup = await Supplier.findById(entry.supplier).session(session);
-        if (sup) {
-          sup.totalPurchases = Math.max(0, sup.totalPurchases - entry.totalCost);
-          sup.totalDue = Math.max(0, sup.totalDue - entry.amountDue);
-          sup.totalPaid = Math.max(0, sup.totalPaid - entry.amountPaid);
-          await sup.save({ session });
-        }
-      }
     });
   } catch (err) {
     await session.endSession();
@@ -574,66 +502,6 @@ export async function cancelStockEntry(id: string, reason: string) {
   revalidatePath("/stock-entries");
   revalidatePath(`/stock-entries/${id}`);
   revalidatePath("/inventory");
-  return { success: true };
-}
-
-export async function recordSupplierPayment(
-  entryId: string,
-  amount: number,
-  method: "CASH" | "BANK_TRANSFER" | "MOBILE_MONEY" | "CHEQUE"
-) {
-  const user = await requirePermission(PERMISSIONS.MANAGE_SUPPLIERS);
-  if (amount <= 0) return { success: false, error: "Amount must be positive" };
-
-  await connectDB();
-  const session = await mongoose.startSession();
-
-  try {
-    await session.withTransaction(async () => {
-      const entry = await StockEntry.findById(entryId).session(session);
-      if (!entry) throw new Error("Stock entry not found");
-      if (entry.status === "CANCELLED") throw new Error("Cannot pay a cancelled entry");
-      const remaining = entry.totalCost - entry.amountPaid;
-      if (amount > remaining + 0.01) {
-        throw new Error(`Payment exceeds outstanding balance of ${formatCurrency(remaining)}`);
-      }
-
-      entry.amountPaid += amount;
-      entry.amountDue = Math.max(0, entry.totalCost - entry.amountPaid);
-      entry.paymentMethod = method;
-      entry.paymentStatus =
-        entry.amountDue <= 0.01 ? "PAID" : entry.amountPaid > 0 ? "PARTIAL" : "UNPAID";
-      await entry.save({ session });
-
-      if (entry.supplier) {
-        const sup = await Supplier.findById(entry.supplier).session(session);
-        if (sup) {
-          sup.totalPaid += amount;
-          sup.totalDue = Math.max(0, sup.totalDue - amount);
-          await sup.save({ session });
-        }
-      }
-    });
-  } catch (err) {
-    await session.endSession();
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : "Payment failed",
-    };
-  }
-
-  await session.endSession();
-
-  await logActivity(user, {
-    action: "PAYMENT",
-    module: "INVENTORY",
-    description: `Recorded supplier payment of ${formatCurrency(amount)}`,
-    metadata: { entryId, amount, method },
-  });
-
-  revalidatePath("/stock-entries");
-  revalidatePath(`/stock-entries/${entryId}`);
-  revalidatePath("/reports/supplier-purchases");
   return { success: true };
 }
 
@@ -659,7 +527,6 @@ export async function getStockEntries(opts?: {
     filter.$or = [
       { referenceNumber: { $regex: opts.search, $options: "i" } },
       { invoiceNumber: { $regex: opts.search, $options: "i" } },
-      { supplierName: { $regex: opts.search, $options: "i" } },
       { "lineItems.productName": { $regex: opts.search, $options: "i" } },
       { notes: { $regex: opts.search, $options: "i" } },
     ];
@@ -673,7 +540,6 @@ export async function getStockEntries(opts?: {
       (filter.entryDate as Record<string, Date>).$lte = to;
     }
   }
-  if (opts?.supplier && opts.supplier !== "all") filter.supplier = opts.supplier;
   if (opts?.status && opts.status !== "all") filter.status = opts.status;
   if (opts?.paymentStatus && opts.paymentStatus !== "all")
     filter.paymentStatus = opts.paymentStatus;
@@ -716,11 +582,7 @@ export async function getStockIntakeReport(opts: { from: string; to: string }) {
 
   const dailyMap = new Map<
     string,
-    { date: string; entries: number; quantity: number; cost: number; suppliers: Set<string> }
-  >();
-  const supplierMap = new Map<
-    string,
-    { supplierId?: string; supplierName: string; entries: number; quantity: number; cost: number }
+    { date: string; entries: number; quantity: number; cost: number }
   >();
   const productMap = new Map<
     string,
@@ -731,28 +593,12 @@ export async function getStockIntakeReport(opts: { from: string; to: string }) {
   for (const e of entries) {
     const dateKey = new Date(e.entryDate).toISOString().slice(0, 10);
     if (!dailyMap.has(dateKey)) {
-      dailyMap.set(dateKey, { date: dateKey, entries: 0, quantity: 0, cost: 0, suppliers: new Set() });
+      dailyMap.set(dateKey, { date: dateKey, entries: 0, quantity: 0, cost: 0 });
     }
     const d = dailyMap.get(dateKey)!;
     d.entries += 1;
     d.quantity += e.totalQuantity;
     d.cost += e.totalCost;
-    if (e.supplierName) d.suppliers.add(e.supplierName);
-
-    const supplierKey = e.supplierName || "Unspecified";
-    if (!supplierMap.has(supplierKey)) {
-      supplierMap.set(supplierKey, {
-        supplierId: e.supplier?.toString(),
-        supplierName: supplierKey,
-        entries: 0,
-        quantity: 0,
-        cost: 0,
-      });
-    }
-    const s = supplierMap.get(supplierKey)!;
-    s.entries += 1;
-    s.quantity += e.totalQuantity;
-    s.cost += e.totalCost;
 
     for (const li of e.lineItems) {
       const pid = li.product.toString();
@@ -788,11 +634,7 @@ export async function getStockIntakeReport(opts: { from: string; to: string }) {
     from: opts.from,
     to: opts.to,
     summary,
-    daily: Array.from(dailyMap.values()).map((d) => ({
-      ...d,
-      suppliers: d.suppliers.size,
-    })),
-    suppliers: Array.from(supplierMap.values()).sort((a, b) => b.cost - a.cost),
+    daily: Array.from(dailyMap.values()),
     products: Array.from(productMap.values()).sort((a, b) => b.cost - a.cost),
     paymentBreakdown: paymentMap,
   };
@@ -859,93 +701,9 @@ export async function getRecentStockEntries(limit = 5) {
   const items = await StockEntry.find({ status: { $ne: "CANCELLED" } })
     .sort({ entryDate: -1 })
     .limit(limit)
-    .select("referenceNumber supplierName totalQuantity totalCost status entryDate createdAt")
+    .select("referenceNumber totalQuantity totalCost status entryDate createdAt")
     .lean();
   return safeJSON<unknown[]>(items);
-}
-
-export async function getSupplierPurchaseReport(opts: { from: string; to: string; supplierId?: string }) {
-  await requirePermission(PERMISSIONS.MANAGE_SUPPLIERS);
-  await connectDB();
-  const from = new Date(opts.from);
-  from.setHours(0, 0, 0, 0);
-  const to = new Date(opts.to);
-  to.setHours(23, 59, 59, 999);
-
-  const match: Record<string, unknown> = {
-    entryDate: { $gte: from, $lte: to },
-  };
-  if (opts.supplierId && opts.supplierId !== "all") match.supplier = opts.supplierId;
-
-  const allEntries = await StockEntry.find(match).sort({ entryDate: -1 }).lean();
-
-  const supplierMap = new Map<
-    string,
-    {
-      supplierId: string;
-      supplierName: string;
-      phone?: string;
-      entries: number;
-      products: number;
-      quantity: number;
-      cost: number;
-      paid: number;
-      due: number;
-    }
-  >();
-
-  for (const e of allEntries) {
-    if (!e.supplier) continue;
-    const key = e.supplier.toString();
-    if (!supplierMap.has(key)) {
-      supplierMap.set(key, {
-        supplierId: key,
-        supplierName: e.supplierName || "Unspecified",
-        entries: 0,
-        products: 0,
-        quantity: 0,
-        cost: 0,
-        paid: 0,
-        due: 0,
-      });
-    }
-    const s = supplierMap.get(key)!;
-    s.entries += 1;
-    s.products += e.lineItems.length;
-    s.quantity += e.totalQuantity;
-    s.cost += e.totalCost;
-    s.paid += e.amountPaid;
-    s.due += e.amountDue;
-  }
-
-  const supplierIds = Array.from(supplierMap.keys());
-  if (supplierIds.length > 0) {
-    const suppliers = await Supplier.find({ _id: { $in: supplierIds } })
-      .select("phone contactPerson totalDue")
-      .lean();
-    for (const s of suppliers) {
-      const entry = supplierMap.get(s._id.toString());
-      if (entry) {
-        entry.phone = s.phone;
-      }
-    }
-  }
-
-  const summary = {
-    suppliers: supplierMap.size,
-    entries: allEntries.length,
-    cost: allEntries.reduce((s, e) => s + e.totalCost, 0),
-    paid: allEntries.reduce((s, e) => s + e.amountPaid, 0),
-    due: allEntries.reduce((s, e) => s + e.amountDue, 0),
-  };
-
-  return {
-    from: opts.from,
-    to: opts.to,
-    summary,
-    rows: Array.from(supplierMap.values()).sort((a, b) => b.cost - a.cost),
-    entries: safeJSON<unknown[]>(allEntries),
-  };
 }
 
 export async function getStockEntryProducts() {
@@ -979,7 +737,6 @@ export async function getLowStockReport(opts?: {
 
   const products = await Product.find(filter)
     .populate("category", "name")
-    .populate("supplier", "companyName phone")
     .sort({ quantity: 1 })
     .lean();
 
@@ -1026,8 +783,7 @@ export async function getLowStockNotifications() {
       ],
     },
   })
-    .select("_id name productCode quantity reorderLevel supplier")
-    .populate("supplier", "companyName")
+    .select("_id name productCode quantity reorderLevel")
     .sort({ quantity: 1 })
     .limit(10)
     .lean();
@@ -1076,7 +832,6 @@ export interface BulkImportResult {
 }
 
 export async function bulkCreateStockEntry(input: {
-  supplier?: string;
   shop?: string;
   invoiceNumber?: string;
   notes?: string;
@@ -1187,12 +942,6 @@ export async function bulkCreateStockEntry(input: {
         return "PARTIAL";
       })();
 
-      let supplierName: string | undefined;
-      if (input.supplier) {
-        const sup = await Supplier.findById(input.supplier).session(session);
-        if (sup) supplierName = sup.companyName;
-      }
-
       let shopName: string | undefined;
       if (input.shop) {
         const shopDoc = await Shop.findById(input.shop).session(session);
@@ -1204,8 +953,6 @@ export async function bulkCreateStockEntry(input: {
         [
           {
             referenceNumber,
-            supplier: input.supplier || undefined,
-            supplierName,
             shop: input.shop || undefined,
             shopName,
             lineItems,
@@ -1230,17 +977,6 @@ export async function bulkCreateStockEntry(input: {
       );
 
       entryId = entry._id.toString();
-
-      if (supplierName && input.supplier) {
-        const sup = await Supplier.findById(input.supplier).session(session);
-        if (sup) {
-          sup.totalPurchases += totals.totalCost;
-          sup.totalPaid += input.amountPaid || 0;
-          sup.totalDue = Math.max(0, sup.totalDue + amountDue);
-          sup.lastPurchaseDate = new Date();
-          await sup.save({ session });
-        }
-      }
     });
   } catch (err) {
     await session.endSession();
@@ -1272,7 +1008,6 @@ export async function bulkCreateStockEntry(input: {
   revalidatePath("/dashboard");
   revalidatePath("/reports");
   revalidatePath("/reports/stock-entries");
-  revalidatePath("/reports/supplier-purchases");
   revalidatePath("/reports/low-stock");
 
   return {

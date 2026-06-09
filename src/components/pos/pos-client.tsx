@@ -9,7 +9,6 @@ import {
   Minus,
   Trash2,
   ShoppingCart,
-  User,
   CreditCard,
   Wallet,
   Banknote,
@@ -17,9 +16,6 @@ import {
   Receipt,
   Percent,
   CheckCircle2,
-  Phone,
-  Tag,
-  X,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -83,10 +79,7 @@ export function POSClient({ taxRate }: { taxRate: number }) {
   const [payOpen, setPayOpen] = React.useState(false);
   const [paymentMethod, setPaymentMethod] = React.useState<PaymentMethod>("CASH");
   const [amountPaid, setAmountPaid] = React.useState("");
-  const [customerName, setCustomerName] = React.useState("");
-  const [customerPhone, setCustomerPhone] = React.useState("");
   const [discountPct, setDiscountPct] = React.useState(0);
-  const [isWholesale, setIsWholesale] = React.useState(false);
   const [enableTax, setEnableTax] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
 
@@ -172,8 +165,6 @@ export function POSClient({ taxRate }: { taxRate: number }) {
   const openPayment = () => {
     if (cart.length === 0) return toast.error("Cart is empty");
     setAmountPaid(total.toFixed(2));
-    setCustomerName("");
-    setCustomerPhone("");
     setPayOpen(true);
   };
 
@@ -192,9 +183,7 @@ export function POSClient({ taxRate }: { taxRate: number }) {
         discount: i.discount,
         subtotal: i.unitPrice * i.quantity,
       }));
-      const finalName = customerName.trim() || "Walk-in Customer";
       const res = await createSale({
-        customerName: finalName,
         items,
         subtotal,
         totalDiscount,
@@ -205,11 +194,10 @@ export function POSClient({ taxRate }: { taxRate: number }) {
         change,
         paymentMethod,
         payments: [{ method: paymentMethod, amount: paid }],
-        isWholesale,
       });
       if (res.success) {
         toast.success(`Sale ${res.saleNumber} completed`, {
-          description: `${finalName} · ${formatCurrency(total)}`,
+          description: `${formatCurrency(total)}`,
         });
         if (res.publicId) {
           window.open(`/receipt/${res.publicId}`, "_blank");
@@ -217,8 +205,6 @@ export function POSClient({ taxRate }: { taxRate: number }) {
         setCart([]);
         setAmountPaid("");
         setDiscountPct(0);
-        setCustomerName("");
-        setCustomerPhone("");
         setPayOpen(false);
         router.refresh();
       } else {
@@ -244,12 +230,7 @@ export function POSClient({ taxRate }: { taxRate: number }) {
               autoFocus
             />
           </div>
-          <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-card border h-11">
-            <Switch checked={isWholesale} onCheckedChange={setIsWholesale} id="wholesale" />
-            <Label htmlFor="wholesale" className="text-xs cursor-pointer whitespace-nowrap">
-              Wholesale Pricing
-            </Label>
-          </div>
+
         </div>
 
         <Card>
@@ -447,34 +428,6 @@ export function POSClient({ taxRate }: { taxRate: number }) {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                <Tag className="h-3 w-3" /> Customer (optional)
-              </p>
-              <div className="space-y-1.5">
-                <div className="relative">
-                  <User className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                  <Input
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder="Customer name (leave blank for walk-in)"
-                    className="h-9 pl-8 text-sm"
-                    autoFocus
-                  />
-                </div>
-                <div className="relative">
-                  <Phone className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                  <Input
-                    value={customerPhone}
-                    onChange={(e) => setCustomerPhone(e.target.value)}
-                    placeholder="Phone number (optional)"
-                    className="h-9 pl-8 text-sm"
-                    inputMode="tel"
-                  />
-                </div>
-              </div>
-            </div>
-
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                 Payment method

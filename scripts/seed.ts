@@ -15,8 +15,6 @@ import {
   User,
   Category,
   Product,
-  Supplier,
-  Customer,
   Sale,
   InventoryTransaction,
   Notification,
@@ -106,31 +104,7 @@ const DEMO_CATEGORIES = [
   { name: "Tools", description: "Wrenches, jacks, diagnostic tools" },
 ];
 
-const DEMO_SUPPLIERS = [
-  { companyName: "AutoParts GH Ltd", contactPerson: "Kwame Mensah", phone: "+233 24 111 2222", email: "sales@autopartsgh.com" },
-  { companyName: "Global Spare Parts Co.", contactPerson: "Akua Asante", phone: "+233 20 333 4444", email: "info@globalspareparts.com" },
-  { companyName: "Motors Direct", contactPerson: "Yaw Boateng", phone: "+233 27 555 6666", email: "orders@motorsdirect.com" },
-  { companyName: "Quality Parts Africa", contactPerson: "Efua Osei", phone: "+233 24 777 8888", email: "support@qualityparts.africa" },
-  { companyName: "Vehicle Components Ltd", contactPerson: "Kofi Adjei", phone: "+233 20 999 0000", email: "contact@vcltd.com" },
-  { companyName: "Speedy Motors Supply", contactPerson: "Ama Darko", phone: "+233 27 123 4567", email: "ama@speedymotors.com" },
-  { companyName: "Continental Parts", contactPerson: "Kojo Owusu", phone: "+233 24 890 1234", email: "kojo@continentalparts.com" },
-  { companyName: "Express Auto", contactPerson: "Adwoa Sarpong", phone: "+233 20 234 5678", email: "adwoa@expressauto.com" },
-  { companyName: "Nana Yaw Motors", contactPerson: "Nana Yaw", phone: "+233 27 345 6789" },
-  { companyName: "Kingsway Auto Spares", contactPerson: "Yaa Asantewa", phone: "+233 24 456 7890", email: "yaa@kingsway.com" },
-];
 
-const DEMO_CUSTOMERS = [
-  { name: "Kwame Asante", phone: "+233 24 100 0001", email: "kwame@example.com", address: "East Legon, Accra", isWholesale: true, companyName: "Asante Auto Works" },
-  { name: "Akua Mensah", phone: "+233 20 100 0002", address: "Tema", isWholesale: true, companyName: "Mensah Garage" },
-  { name: "Kofi Boateng", phone: "+233 27 100 0003", address: "Kumasi" },
-  { name: "Efua Owusu", phone: "+233 24 100 0004", email: "efua@example.com", address: "Takoradi", companyName: "Owusu Motors" },
-  { name: "Yaw Adjei", phone: "+233 20 100 0005", address: "Cape Coast", isWholesale: true, companyName: "Adjei Auto" },
-  { name: "Ama Sarpong", phone: "+233 27 100 0006", email: "ama@example.com", address: "Accra New Town" },
-  { name: "Kojo Darko", phone: "+233 24 100 0007", address: "Madina" },
-  { name: "Adwoa Kumi", phone: "+233 20 100 0008", email: "adwoa@example.com", address: "Kasoa", isWholesale: true, companyName: "Kumi Trading" },
-  { name: "Kwesi Tetteh", phone: "+233 27 100 0009", address: "Spintex" },
-  { name: "Yaa Asantewa", phone: "+233 24 100 0010", email: "yaa@example.com", address: "Airport Residential", companyName: "Asantewa Co." },
-];
 
 type ProductOrientation = "SINGLE" | "LEFT_RIGHT";
 
@@ -240,12 +214,6 @@ async function main() {
   );
   const categoryByName = new Map(categories.map((c) => [c.name, c]));
 
-  console.log("→ Suppliers");
-  const suppliers = await Supplier.insertMany(DEMO_SUPPLIERS);
-
-  console.log("→ Customers");
-  const customers = await Customer.insertMany(DEMO_CUSTOMERS);
-
   console.log("→ Products");
 
   // Drop legacy/removed unique index that may still exist in the database (e.g. { sku: 1 } with unique=true).
@@ -274,7 +242,6 @@ async function main() {
   const products = await Product.insertMany(
     PRODUCT_NAMES.map((p, idx) => {
       const cat = categoryByName.get(p.category);
-      const supplier = suppliers[Math.floor(Math.random() * suppliers.length)];
       const shop = shops[Math.floor(Math.random() * shops.length)];
 
       const aisle = ["A", "B", "C", "D"][Math.floor(Math.random() * 4)];
@@ -303,7 +270,6 @@ async function main() {
         brand: p.brand,
         vehicleCompatibility: p.vehicle,
         price: p.sell,
-        supplier: supplier._id,
         reorderLevel: Math.max(5, Math.floor(p.qty * 0.2)),
         status: "ACTIVE",
         images,
@@ -343,7 +309,6 @@ async function main() {
   for (let day = 0; day < 30; day++) {
     const numSales = Math.floor(Math.random() * 6) + 2;
     for (let i = 0; i < numSales; i++) {
-      const customer = customers[Math.floor(Math.random() * customers.length)];
       const cashier = Math.random() > 0.6 ? staff : admin;
       const numItems = Math.floor(Math.random() * 3) + 1;
 
@@ -400,8 +365,6 @@ async function main() {
       salesToCreate.push({
         saleNumber: generateSaleNumber(),
         publicId: uuidv4(),
-        customer: customer._id,
-        customerName: customer.name,
         items,
         subtotal,
         totalDiscount: 0,
@@ -415,7 +378,6 @@ async function main() {
         staff: cashier._id,
         staffName: cashier.name,
         status: "COMPLETED",
-        isWholesale: customer.isWholesale,
         refundedAmount: 0,
         createdAt: date,
         updatedAt: date,
@@ -423,16 +385,6 @@ async function main() {
     }
   }
   await Sale.insertMany(salesToCreate);
-
-  console.log("→ Customer spending");
-  for (const c of customers) {
-    const sales = await Sale.find({ customer: c._id });
-    const total = sales.reduce((s, x) => s + x.total, 0);
-    const lastDate = sales.length > 0 ? sales.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0].createdAt : undefined;
-    c.totalSpending = total;
-    if (lastDate) c.lastPurchaseDate = lastDate;
-    await c.save();
-  }
 
   console.log("→ Notifications");
   await Notification.insertMany([

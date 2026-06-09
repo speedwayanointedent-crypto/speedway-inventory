@@ -56,7 +56,6 @@ export const productSchema = z.object({
   quantityRight: z.coerce.number().int().min(0).default(0),
 
   reorderLevel: z.coerce.number().int().min(0).default(10),
-  supplier: z.string().optional(),
 
   images: z.array(z.string()).default([]),
   shop: z.string().min(1, "Shop location is required"),
@@ -78,7 +77,6 @@ const productBaseShape = {
   quantityLeft: z.coerce.number().int().min(0).optional(),
   quantityRight: z.coerce.number().int().min(0).optional(),
   reorderLevel: z.coerce.number().int().min(0).optional(),
-  supplier: z.string().optional(),
   images: z.array(z.string()).optional(),
   shop: z.string().min(1, "Shop location is required").optional(),
   storageLocation: z.string().optional(),
@@ -158,37 +156,6 @@ export const categorySchema = z.object({
   parent: z.string().optional(),
 });
 
-export const supplierSchema = z.object({
-  companyName: z.string().min(2, "Company name is required"),
-  contactPerson: z.string().min(2, "Contact person is required"),
-  phone: z.string().min(7, "Phone number is required"),
-  email: z.string().email().optional().or(z.literal("")),
-  address: z.string().optional(),
-  notes: z.string().optional(),
-});
-
-export const customerSchema = z.object({
-  name: z.string().min(2, "Customer name is required"),
-  phone: z.string().min(7, "Phone number is required"),
-  email: z.string().email().optional().or(z.literal("")),
-  address: z.string().optional(),
-  companyName: z.string().optional(),
-  notes: z.string().optional(),
-  isWholesale: z.boolean().default(false),
-});
-
-const customerBaseShape = {
-  name: z.string().min(2, "Customer name is required").optional(),
-  phone: z.string().min(7, "Phone number is required").optional(),
-  email: z.string().email().optional().or(z.literal("")),
-  address: z.string().optional(),
-  companyName: z.string().optional(),
-  notes: z.string().optional(),
-  isWholesale: z.boolean().optional(),
-};
-
-export const customerUpdateSchema = z.object(customerBaseShape);
-
 export const stockLineItemSchema = z.object({
   product: z.string().min(1, "Product is required"),
   /**
@@ -204,7 +171,6 @@ export const stockLineItemSchema = z.object({
 });
 
 export const stockEntrySchema = z.object({
-  supplier: z.string().optional().or(z.literal("")),
   shop: z.string().optional().or(z.literal("")),
   invoiceNumber: z.string().optional(),
   notes: z.string().optional(),
@@ -219,7 +185,6 @@ export const stockEntrySchema = z.object({
 });
 
 export const stockEntryUpdateSchema = z.object({
-  supplier: z.string().optional().or(z.literal("")),
   shop: z.string().optional().or(z.literal("")),
   invoiceNumber: z.string().optional(),
   notes: z.string().optional(),
@@ -244,8 +209,6 @@ export const saleItemSchema = z.object({
 });
 
 export const saleSchema = z.object({
-  customer: z.string().optional(),
-  customerName: z.string().min(1),
   items: z.array(saleItemSchema).min(1, "At least one item is required"),
   subtotal: z.number().min(0),
   totalDiscount: z.number().min(0).default(0),
@@ -265,7 +228,6 @@ export const saleSchema = z.object({
     )
     .optional(),
   notes: z.string().optional(),
-  isWholesale: z.boolean().default(false),
 });
 
 export const returnSchema = z.object({
@@ -323,92 +285,13 @@ export const settingsUpdateSchema = z.object({
   theme: z.enum(["light", "dark", "system"]).optional(),
 });
 
-export const supplierReturnItemSchema = z.object({
-  product: z.string().min(1, "Product is required"),
-  quantity: z.coerce.number().int().min(1, "Quantity must be at least 1"),
-  unitCost: z.coerce.number().min(0, "Cost cannot be negative"),
-  reason: z
-    .enum([
-      "DEFECTIVE",
-      "WRONG_ITEM",
-      "OVERSTOCK",
-      "QUALITY_ISSUE",
-      "DAMAGED_IN_TRANSIT",
-      "EXPIRED",
-      "OTHER",
-    ])
-    .default("DEFECTIVE"),
-  restockable: z.boolean().default(true),
-});
-
-export const supplierReturnSchema = z.object({
-  supplier: z.string().optional().or(z.literal("")),
-  originalStockEntry: z.string().optional().or(z.literal("")),
-  primaryReason: z
-    .enum([
-      "DEFECTIVE",
-      "WRONG_ITEM",
-      "OVERSTOCK",
-      "QUALITY_ISSUE",
-      "DAMAGED_IN_TRANSIT",
-      "EXPIRED",
-      "OTHER",
-    ])
-    .default("DEFECTIVE"),
-  resolution: z
-    .enum(["REFUND", "REPLACEMENT", "CREDIT_NOTE", "PENDING"])
-    .default("PENDING"),
-  expectedRefundAmount: z.coerce.number().min(0).default(0),
-  status: z
-    .enum(["PENDING", "APPROVED", "IN_TRANSIT", "COMPLETED", "REJECTED", "CANCELLED"])
-    .default("PENDING"),
-  trackingNumber: z.string().optional(),
-  returnDate: z.string().or(z.date()).optional(),
-  notes: z.string().optional(),
-  items: z.array(supplierReturnItemSchema).min(1, "At least one item is required"),
-});
-
-export const supplierReturnUpdateSchema = z.object({
-  supplier: z.string().optional().or(z.literal("")),
-  primaryReason: z
-    .enum([
-      "DEFECTIVE",
-      "WRONG_ITEM",
-      "OVERSTOCK",
-      "QUALITY_ISSUE",
-      "DAMAGED_IN_TRANSIT",
-      "EXPIRED",
-      "OTHER",
-    ])
-    .optional(),
-  resolution: z
-    .enum(["REFUND", "REPLACEMENT", "CREDIT_NOTE", "PENDING"])
-    .optional(),
-  expectedRefundAmount: z.coerce.number().min(0).optional(),
-  actualRefundAmount: z.coerce.number().min(0).optional(),
-  status: z
-    .enum(["PENDING", "APPROVED", "IN_TRANSIT", "COMPLETED", "REJECTED", "CANCELLED"])
-    .optional(),
-  trackingNumber: z.string().optional(),
-  returnDate: z.string().or(z.date()).optional(),
-  shippedDate: z.string().or(z.date()).optional(),
-  completedDate: z.string().or(z.date()).optional(),
-  notes: z.string().optional(),
-  items: z.array(supplierReturnItemSchema).min(1).optional(),
-});
-
 export type LoginInput = z.infer<typeof loginSchema>;
 export type UserInput = z.infer<typeof userSchema>;
 export type ProductInput = z.infer<typeof productSchema>;
 export type CategoryInput = z.infer<typeof categorySchema>;
-export type SupplierInput = z.infer<typeof supplierSchema>;
-export type CustomerInput = z.infer<typeof customerSchema>;
 export type StockEntryInput = z.infer<typeof stockEntrySchema>;
 export type StockEntryUpdateInput = z.infer<typeof stockEntryUpdateSchema>;
 export type StockLineItemInput = z.infer<typeof stockLineItemSchema>;
 export type SaleInput = z.infer<typeof saleSchema>;
 export type ReturnInput = z.infer<typeof returnSchema>;
-export type SupplierReturnItemInput = z.infer<typeof supplierReturnItemSchema>;
-export type SupplierReturnInput = z.infer<typeof supplierReturnSchema>;
-export type SupplierReturnUpdateInput = z.infer<typeof supplierReturnUpdateSchema>;
 export type SettingsInput = z.infer<typeof settingsSchema>;

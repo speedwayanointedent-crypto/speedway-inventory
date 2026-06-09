@@ -47,7 +47,7 @@ export default async function SalesPage({
       </PageHeader>
 
       <div className="mb-4">
-        <SearchInput placeholder="Search by sale number or customer..." />
+        <SearchInput placeholder="Search by sale number..." />
       </div>
 
       <Card className="overflow-hidden">
@@ -62,7 +62,6 @@ export default async function SalesPage({
             <TableHeader>
               <TableRow>
                 <TableHead>Sale #</TableHead>
-                <TableHead>Customer</TableHead>
                 <TableHead>Cashier</TableHead>
                 <TableHead>Payment</TableHead>
                 <TableHead className="text-right">Total</TableHead>
@@ -76,7 +75,6 @@ export default async function SalesPage({
                 _id: string;
                 saleNumber: string;
                 publicId: string;
-                customerName: string;
                 staffName: string;
                 paymentMethod: PaymentMethod;
                 total: number;
@@ -92,7 +90,6 @@ export default async function SalesPage({
                       {s.saleNumber}
                     </Link>
                   </TableCell>
-                  <TableCell className="text-sm">{s.customerName}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">{s.staffName}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="text-xs">

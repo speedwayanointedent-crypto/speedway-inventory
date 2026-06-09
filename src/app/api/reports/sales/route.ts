@@ -37,11 +37,10 @@ export async function GET(req: Request) {
 
   if (format === "csv") {
     const rows = [
-      ["Sale #", "Date", "Customer", "Cashier", "Payment", "Subtotal", "Discount", "Tax", "Total", "Status"],
+      ["Sale #", "Date", "Cashier", "Payment", "Subtotal", "Discount", "Tax", "Total", "Status"],
       ...sales.map((s) => [
         s.saleNumber,
         formatDate(s.createdAt, true),
-        s.customerName,
         s.staffName,
         PAYMENT_METHOD_LABELS[s.paymentMethod as PaymentMethod],
         s.subtotal.toFixed(2),
@@ -51,7 +50,7 @@ export async function GET(req: Request) {
         s.status,
       ]),
       [],
-      ["", "", "", "", "TOTAL", "", "", "", total.toFixed(2), `${count} sales`],
+      ["", "", "", "TOTAL", "", "", "", total.toFixed(2), `${count} sales`],
     ];
     const csv = rows.map((r) => r.map(csvEscape).join(",")).join("\n");
     return new NextResponse(csv, {
@@ -63,16 +62,15 @@ export async function GET(req: Request) {
   }
 
   if (format === "pdf") {
-    const headers = ["Sale #", "Date", "Customer", "Payment", "Total", "Status"];
+    const headers = ["Sale #", "Date", "Payment", "Total", "Status"];
     const rows = sales.map((s) => [
       s.saleNumber,
       formatDate(s.createdAt, true),
-      s.customerName,
       PAYMENT_METHOD_LABELS[s.paymentMethod as PaymentMethod],
       formatCurrency(s.total),
       s.status,
     ]);
-    rows.push(["", "", "", "TOTAL", formatCurrency(total), `${count} sales`]);
+    rows.push(["", "", "TOTAL", formatCurrency(total), `${count} sales`]);
     const pdf = generateReportPDF("Sales Report", headers, rows);
     return new NextResponse(Buffer.from(pdf), {
       headers: {
@@ -87,7 +85,6 @@ export async function GET(req: Request) {
   ws.columns = [
     { header: "Sale #", key: "n", width: 18 },
     { header: "Date", key: "d", width: 18 },
-    { header: "Customer", key: "c", width: 22 },
     { header: "Cashier", key: "s", width: 18 },
     { header: "Payment", key: "p", width: 14 },
     { header: "Subtotal", key: "sub", width: 12 },
@@ -102,7 +99,6 @@ export async function GET(req: Request) {
     ws.addRow({
       n: s.saleNumber,
       d: formatDate(s.createdAt, true),
-      c: s.customerName,
       s: s.staffName,
       p: PAYMENT_METHOD_LABELS[s.paymentMethod as PaymentMethod],
       sub: s.subtotal,

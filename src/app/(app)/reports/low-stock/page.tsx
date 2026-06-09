@@ -4,7 +4,6 @@ import {
   PackageX,
   CheckCircle2,
   TrendingUp,
-  Building2,
   Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -38,7 +37,6 @@ export default async function LowStockReportPage({ searchParams }: PageProps) {
     quantityRight?: number;
     orientation?: string;
     reorderLevel: number;
-    supplier?: { companyName: string; phone?: string };
     category?: { name: string };
   }>;
 
@@ -216,9 +214,6 @@ export default async function LowStockReportPage({ searchParams }: PageProps) {
                       <th className="p-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground text-right">
                         Need
                       </th>
-                      <th className="p-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        Supplier
-                      </th>
                       <th className="p-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground text-right">
                         Reorder Cost
                       </th>
@@ -257,16 +252,6 @@ export default async function LowStockReportPage({ searchParams }: PageProps) {
                           </td>
                           <td className="p-3 text-right tabular-nums text-emerald-600 font-medium">
                             +{need}
-                          </td>
-                          <td className="p-3 text-xs">
-                            {p.supplier ? (
-                              <span className="flex items-center gap-1">
-                                <Building2 className="h-3 w-3 shrink-0" />
-                                {p.supplier.companyName}
-                              </span>
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
                           </td>
                           <td className="p-3 text-right tabular-nums font-medium">
                             {formatCurrency(cost)}
@@ -309,12 +294,6 @@ export default async function LowStockReportPage({ searchParams }: PageProps) {
                           <p className="text-[10px] text-muted-foreground">
                             {p.productCode} · {p.reorderLevel} reorder
                           </p>
-                          {p.supplier && (
-                            <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1">
-                              <Building2 className="h-2.5 w-2.5" />
-                              {p.supplier.companyName}
-                            </p>
-                          )}
                         </div>
                         <div className="text-right">
                           <p className="text-base font-bold tabular-nums">{q}</p>

@@ -48,8 +48,6 @@ export interface IStockLineItem {
 
 export interface IStockEntry extends Document {
   referenceNumber: string;
-  supplier?: mongoose.Types.ObjectId;
-  supplierName?: string;
   shop?: mongoose.Types.ObjectId;
   shopName?: string;
   lineItems: IStockLineItem[];
@@ -109,8 +107,6 @@ const StockLineItemSchema = new Schema(
 const StockEntrySchema = new Schema<IStockEntry>(
   {
     referenceNumber: { type: String, required: true, unique: true, index: true, trim: true },
-    supplier: { type: Schema.Types.ObjectId, ref: "Supplier", index: true },
-    supplierName: { type: String, trim: true, index: true },
     shop: { type: Schema.Types.ObjectId, ref: "Shop", index: true },
     shopName: { type: String, trim: true },
     lineItems: {
@@ -156,7 +152,6 @@ const StockEntrySchema = new Schema<IStockEntry>(
 );
 
 StockEntrySchema.index({ entryDate: -1 });
-StockEntrySchema.index({ supplier: 1, entryDate: -1 });
 StockEntrySchema.index({ status: 1, entryDate: -1 });
 StockEntrySchema.index({ paymentStatus: 1, entryDate: -1 });
 StockEntrySchema.index({ "lineItems.product": 1 });

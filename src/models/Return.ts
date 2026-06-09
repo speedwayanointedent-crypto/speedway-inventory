@@ -12,8 +12,6 @@ export interface IReturn extends Document {
   returnNumber: string;
   sale: mongoose.Types.ObjectId;
   saleNumber: string;
-  customer?: mongoose.Types.ObjectId;
-  customerName: string;
   items: IReturnItem[];
   totalAmount: number;
   reason: string;
@@ -42,8 +40,6 @@ const ReturnSchema = new Schema<IReturn>(
     returnNumber: { type: String, required: true, unique: true, index: true },
     sale: { type: Schema.Types.ObjectId, ref: "Sale", required: true, index: true },
     saleNumber: { type: String, required: true },
-    customer: { type: Schema.Types.ObjectId, ref: "Customer" },
-    customerName: { type: String, required: true },
     items: [ReturnItemSchema],
     totalAmount: { type: Number, required: true },
     reason: { type: String, required: true },

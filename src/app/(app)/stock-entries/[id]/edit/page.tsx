@@ -2,7 +2,6 @@ import { notFound, redirect } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
 import { StockEntryForm } from "@/components/inventory/stock-entry-form";
 import { getStockEntry, getStockEntryProducts } from "@/actions/stock";
-import { getSuppliersForSelect } from "@/actions/suppliers";
 import { getShops } from "@/actions/shops";
 import { requireAuth } from "@/lib/session";
 import { PERMISSIONS } from "@/lib/constants";
@@ -20,17 +19,15 @@ export default async function EditStockEntryPage({ params }: Props) {
     redirect("/unauthorized");
   }
 
-  const [entry, products, suppliers, shops] = await Promise.all([
+  const [entry, products, shops] = await Promise.all([
     getStockEntry(id),
     getStockEntryProducts(),
-    getSuppliersForSelect(),
     getShops(),
   ]);
   if (!entry) notFound();
 
   const e = entry as Record<string, unknown> & {
     status: string;
-    supplier?: string;
     shop?: string;
     invoiceNumber?: string;
     notes?: string;
@@ -55,13 +52,12 @@ export default async function EditStockEntryPage({ params }: Props) {
     <div className="max-w-5xl mx-auto">
       <PageHeader
         title={`Edit ${(entry as { referenceNumber: string }).referenceNumber}`}
-        description="Adjust quantities, costs, supplier, or payment. Inventory is re-applied automatically."
+        description="Adjust quantities, costs, or payment. Inventory is re-applied automatically."
       />
       <StockEntryForm
         mode="edit"
         entryId={id}
         defaultValues={{
-          supplier: e.supplier ?? "",
           shop: e.shop ?? "",
           invoiceNumber: e.invoiceNumber ?? "",
           notes: e.notes ?? "",
@@ -94,13 +90,6 @@ export default async function EditStockEntryPage({ params }: Props) {
           quantityLeft: number;
           quantityRight: number;
           reorderLevel: number;
-        }>}
-        suppliers={suppliers as Array<{
-          _id: string;
-          companyName: string;
-          contactPerson: string;
-          phone: string;
-          totalDue?: number;
         }>}
         shops={shops as Array<{ _id: string; name: string; code: string }>}
       />

@@ -64,8 +64,7 @@ export async function GET(
     doc.text(value, x + 35, yy);
   };
 
-  labelValue(col1, y, "Supplier:", entry.supplierName || "Unspecified");
-  labelValue(col2, y, "Status:", STOCK_ENTRY_STATUS_LABELS[entry.status as StockEntryStatus] || entry.status);
+  labelValue(col1, y, "Status:", STOCK_ENTRY_STATUS_LABELS[entry.status as StockEntryStatus] || entry.status);
   y += 6;
   labelValue(col1, y, "Invoice:", entry.invoiceNumber || "—");
   labelValue(col2, y, "Payment:", entry.paymentStatus);

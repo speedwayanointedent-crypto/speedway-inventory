@@ -25,7 +25,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -50,14 +49,6 @@ interface ProductOption {
   reorderLevel: number;
 }
 
-interface SupplierOption {
-  _id: string;
-  companyName: string;
-  contactPerson: string;
-  phone: string;
-  totalDue?: number;
-}
-
 interface ShopOption {
   _id: string;
   name: string;
@@ -78,7 +69,6 @@ interface Props {
   entryId?: string;
   defaultValues?: Partial<StockEntryInput>;
   products: ProductOption[];
-  suppliers: SupplierOption[];
   shops: ShopOption[];
 }
 
@@ -87,7 +77,6 @@ export function StockEntryForm({
   entryId,
   defaultValues,
   products,
-  suppliers,
   shops,
 }: Props) {
   const router = useRouter();
@@ -103,7 +92,6 @@ export function StockEntryForm({
   const form = useForm<StockEntryInput>({
     resolver: zodResolver(stockEntrySchema),
     defaultValues: {
-      supplier: defaultValues?.supplier ?? "",
       shop: defaultValues?.shop ?? "",
       invoiceNumber: defaultValues?.invoiceNumber ?? "",
       notes: defaultValues?.notes ?? "",
@@ -134,7 +122,6 @@ export function StockEntryForm({
   });
 
   const lineItems = watch("lineItems") as EditableLine[];
-  const supplier = watch("supplier");
   const status = watch("status");
   const paymentStatus = watch("paymentStatus");
   const amountPaid = Number(watch("amountPaid") || 0);
@@ -148,8 +135,6 @@ export function StockEntryForm({
     );
     return { totalItems: valid.length, totalQuantity, totalCost, amountDue: Math.max(0, totalCost - amountPaid) };
   }, [lineItems, amountPaid]);
-
-  const supplierDetails = suppliers.find((s) => s._id === supplier);
 
   const filteredProducts = React.useMemo(() => {
     const q = productSearch.trim().toLowerCase();
@@ -224,44 +209,14 @@ export function StockEntryForm({
               <Building2 className="h-4 w-4" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold">Source &amp; Reference</h2>
+              <h2 className="text-sm font-semibold">Reference</h2>
               <p className="text-xs text-muted-foreground">
-                Who delivered the stock and where it goes
+                Where the stock goes
               </p>
             </div>
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div>
-              <Label>Supplier</Label>
-              <Select
-                value={supplier || "none"}
-                onValueChange={(v) => setValue("supplier", v === "none" ? "" : v)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select supplier" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">— No supplier —</SelectItem>
-                  {suppliers.map((s) => (
-                    <SelectItem key={s._id} value={s._id}>
-                      {s.companyName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {supplierDetails && (
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  {supplierDetails.contactPerson} · {supplierDetails.phone}
-                  {(supplierDetails.totalDue ?? 0) > 0 && (
-                    <span className="ml-1.5 text-amber-600">
-                      · Outstanding {formatCurrency(supplierDetails.totalDue!)}
-                    </span>
-                  )}
-                </p>
-              )}
-            </div>
-
             <div>
               <Label>Receiving Shop</Label>
               <Select
@@ -286,7 +241,7 @@ export function StockEntryForm({
               <Label>Invoice / Reference #</Label>
               <Input
                 {...register("invoiceNumber")}
-                placeholder="Supplier invoice or PO number"
+                placeholder="Invoice or PO number"
               />
             </div>
           </div>
@@ -581,7 +536,7 @@ export function StockEntryForm({
             <div>
               <h2 className="text-sm font-semibold">Payment</h2>
               <p className="text-xs text-muted-foreground">
-                Track what was paid and what&apos;s owed to the supplier
+                Track what was paid and what&apos;s owed
               </p>
             </div>
           </div>

@@ -16,7 +16,6 @@ export async function GET(
     saleNumber: sale.saleNumber as string,
     publicId,
     date: formatDate(sale.createdAt as string, true),
-    customerName: sale.customerName as string,
     staffName: sale.staffName as string,
     items: sale.items as Array<{
       productName: string;

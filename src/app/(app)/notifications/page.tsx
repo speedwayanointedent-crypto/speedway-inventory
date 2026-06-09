@@ -8,7 +8,6 @@ import {
   Package,
   Info,
   PackagePlus,
-  Wallet,
 } from "lucide-react";
 import { getNotifications } from "@/actions/notifications";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,7 +27,6 @@ const ICONS: Record<NotificationType, React.ComponentType<{ className?: string }
   RETURN_CREATED: RotateCcw,
   INVENTORY_ADDED: Package,
   STOCK_RECEIVED: PackagePlus,
-  SUPPLIER_PAYMENT_DUE: Wallet,
   REORDER_ALERT: AlertTriangle,
   STILL_LOW_AFTER_INTAKE: AlertTriangle,
   SYSTEM_ALERT: Info,
@@ -41,7 +39,6 @@ const COLORS: Record<NotificationType, string> = {
   RETURN_CREATED: "text-orange-500 bg-orange-500/10",
   INVENTORY_ADDED: "text-primary bg-primary/10",
   STOCK_RECEIVED: "text-emerald-600 bg-emerald-500/10",
-  SUPPLIER_PAYMENT_DUE: "text-amber-600 bg-amber-500/10",
   REORDER_ALERT: "text-amber-600 bg-amber-500/10",
   STILL_LOW_AFTER_INTAKE: "text-amber-700 bg-amber-500/10",
   SYSTEM_ALERT: "text-muted-foreground bg-muted",

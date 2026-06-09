@@ -151,18 +151,11 @@ export default async function SaleDetailPage({
           <Card>
             <CardContent className="p-4 space-y-2 text-sm">
               <h3 className="text-sm font-semibold mb-2">Details</h3>
-              <Row label="Customer" value={sale.customerName as string} />
               <Row label="Cashier" value={sale.staffName as string} />
               <Row
                 label="Payment"
                 value={PAYMENT_METHOD_LABELS[sale.paymentMethod as PaymentMethod]}
               />
-              {(sale.isWholesale as boolean) && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Type</span>
-                  <Badge variant="info">Wholesale</Badge>
-                </div>
-              )}
             </CardContent>
           </Card>
         </div>

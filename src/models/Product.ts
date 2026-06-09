@@ -28,7 +28,6 @@ export interface IProduct extends Document {
   quantityRight?: number; // for LEFT_RIGHT
 
   reorderLevel: number;
-  supplier?: mongoose.Types.ObjectId;
   images: string[];
   shop: mongoose.Types.ObjectId;
   storageLocation?: string;
@@ -69,7 +68,6 @@ const ProductSchema = new Schema<IProduct>(
     quantityRight: { type: Number, default: 0, min: 0, index: true },
 
     reorderLevel: { type: Number, default: 10, min: 0 },
-    supplier: { type: Schema.Types.ObjectId, ref: "Supplier" },
     images: [{ type: String }],
     shop: { type: Schema.Types.ObjectId, ref: "Shop", required: true, index: true },
     storageLocation: { type: String, trim: true },

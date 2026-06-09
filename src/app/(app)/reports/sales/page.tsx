@@ -77,7 +77,6 @@ export default async function SalesReportPage({
           <TableHeader>
             <TableRow>
               <TableHead>Sale #</TableHead>
-              <TableHead>Customer</TableHead>
               <TableHead>Cashier</TableHead>
               <TableHead className="text-right">Total</TableHead>
               <TableHead>Status</TableHead>
@@ -88,7 +87,6 @@ export default async function SalesReportPage({
             {(sales as Array<{
               _id: string;
               saleNumber: string;
-              customerName: string;
               staffName: string;
               total: number;
               status: string;
@@ -96,7 +94,6 @@ export default async function SalesReportPage({
             }>).map((s) => (
               <TableRow key={s._id}>
                 <TableCell className="text-sm font-mono">{s.saleNumber}</TableCell>
-                <TableCell className="text-sm">{s.customerName}</TableCell>
                 <TableCell className="text-xs text-muted-foreground">{s.staffName}</TableCell>
                 <TableCell className="text-right font-semibold">
                   {formatCurrency(s.total)}

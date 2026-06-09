@@ -25,8 +25,6 @@ export async function createReturn(input: ReturnInput) {
     returnNumber,
     sale: sale._id,
     saleNumber: sale.saleNumber,
-    customer: sale.customer,
-    customerName: sale.customerName,
     items: data.items,
     totalAmount,
     reason: data.reason,
@@ -100,7 +98,6 @@ export async function getReturns(opts?: { search?: string; page?: number; limit?
     filter.$or = [
       { returnNumber: { $regex: opts.search, $options: "i" } },
       { saleNumber: { $regex: opts.search, $options: "i" } },
-      { customerName: { $regex: opts.search, $options: "i" } },
     ];
   }
   const [items, total] = await Promise.all([

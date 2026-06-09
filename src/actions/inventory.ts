@@ -229,15 +229,6 @@ export async function getProduct(id: string) {
     { $unwind: { path: "$category", preserveNullAndEmptyArrays: true } },
     {
       $lookup: {
-        from: "suppliers",
-        localField: "supplier",
-        foreignField: "_id",
-        as: "supplier",
-      },
-    },
-    { $unwind: { path: "$supplier", preserveNullAndEmptyArrays: true } },
-    {
-      $lookup: {
         from: "shops",
         localField: "shop",
         foreignField: "_id",
@@ -248,7 +239,6 @@ export async function getProduct(id: string) {
     {
       $project: {
         "category.name": 1,
-        "supplier.companyName": 1,
         "shop.name": 1,
         "shop.code": 1,
         "shop.city": 1,

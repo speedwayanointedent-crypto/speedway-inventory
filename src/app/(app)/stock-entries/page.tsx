@@ -6,7 +6,6 @@ import {
   Download,
   Eye,
   Wallet,
-  Building2,
   Calendar,
   Hash,
   TrendingUp,
@@ -15,10 +14,8 @@ import {
   Receipt,
   Upload,
 } from "lucide-react";
-import { getStockEntries } from "@/actions/stock";
-import { getSuppliers } from "@/actions/suppliers";
+import { getStockEntries, getStockIntakeSummary } from "@/actions/stock";
 import { getShops } from "@/actions/shops";
-import { getStockIntakeSummary } from "@/actions/stock";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -52,7 +49,6 @@ interface Props {
     page?: string;
     from?: string;
     to?: string;
-    supplier?: string;
     status?: string;
     paymentStatus?: string;
     shop?: string;
@@ -88,19 +84,17 @@ export default async function StockEntriesPage({ searchParams }: Props) {
   const from = sp.from ?? monthAgoISO();
   const to = sp.to ?? todayISO();
 
-  const [{ items, total, totalPages }, suppliers, shops, summary] = await Promise.all([
+  const [{ items, total, totalPages }, shops, summary] = await Promise.all([
     getStockEntries({
       search: sp.search,
       from,
       to,
-      supplier: sp.supplier,
       status: sp.status,
       paymentStatus: sp.paymentStatus,
       shop: sp.shop,
       page,
       limit: 20,
     }),
-    getSuppliers({ limit: 200 }),
     getShops(),
     getStockIntakeSummary(),
   ]);
@@ -108,7 +102,6 @@ export default async function StockEntriesPage({ searchParams }: Props) {
   const exportParams = new URLSearchParams({
     from,
     to,
-    ...(sp.supplier && sp.supplier !== "all" ? { supplier: sp.supplier } : {}),
     ...(sp.status && sp.status !== "all" ? { status: sp.status } : {}),
     ...(sp.paymentStatus && sp.paymentStatus !== "all" ? { paymentStatus: sp.paymentStatus } : {}),
     ...(sp.shop && sp.shop !== "all" ? { shop: sp.shop } : {}),
@@ -218,19 +211,7 @@ export default async function StockEntriesPage({ searchParams }: Props) {
           </form>
 
           <div className="flex items-center gap-2 flex-wrap">
-            <SearchInput placeholder="Search by reference, product, supplier, invoice…" />
-            <FilterSelect
-              label="Supplier"
-              param="supplier"
-              value={sp.supplier ?? "all"}
-              options={[
-                { value: "all", label: "All suppliers" },
-                ...(suppliers.items as Array<{ _id: string; companyName: string }>).map((s) => ({
-                  value: s._id,
-                  label: s.companyName,
-                })),
-              ]}
-            />
+            <SearchInput placeholder="Search by reference, product, invoice…" />
             <FilterSelect
               label="Status"
               param="status"
@@ -278,9 +259,9 @@ export default async function StockEntriesPage({ searchParams }: Props) {
             icon={PackagePlus}
             title="No stock intakes"
             description={
-              sp.search || sp.supplier || sp.status || sp.paymentStatus
+              sp.search || sp.status || sp.paymentStatus
                 ? "Try clearing your filters to see more results."
-                : "Record incoming stock from suppliers to track inventory intake."
+                : "Record incoming stock to track inventory intake."
             }
             action={
               <Button asChild>
@@ -296,7 +277,6 @@ export default async function StockEntriesPage({ searchParams }: Props) {
               <TableRow>
                 <TableHead>Reference</TableHead>
                 <TableHead>Date</TableHead>
-                <TableHead>Supplier</TableHead>
                 <TableHead className="text-center">Items</TableHead>
                 <TableHead className="text-center">Units</TableHead>
                 <TableHead className="text-right">Total Cost</TableHead>
@@ -310,7 +290,6 @@ export default async function StockEntriesPage({ searchParams }: Props) {
                 _id: string;
                 referenceNumber: string;
                 entryDate: string;
-                supplierName?: string;
                 invoiceNumber?: string;
                 totalItems: number;
                 totalQuantity: number;
@@ -335,16 +314,6 @@ export default async function StockEntriesPage({ searchParams }: Props) {
                     </Link>
                   </TableCell>
                   <TableCell className="text-xs">{formatDate(e.entryDate, true)}</TableCell>
-                  <TableCell>
-                    {e.supplierName ? (
-                      <span className="text-sm flex items-center gap-1.5">
-                        <Building2 className="h-3 w-3 text-muted-foreground shrink-0" />
-                        {e.supplierName}
-                      </span>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
                   <TableCell className="text-center text-sm font-semibold">
                     {e.totalItems}
                   </TableCell>

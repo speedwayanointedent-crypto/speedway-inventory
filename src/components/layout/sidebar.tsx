@@ -8,11 +8,7 @@ import {
   LayoutDashboard,
   Package,
   ShoppingCart,
-  Users,
-  Truck,
   Receipt,
-  RotateCcw,
-  BarChart3,
   Bell,
   Settings,
   LogOut,
@@ -24,7 +20,6 @@ import {
   Activity,
   Store,
   Sparkles,
-  Undo2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_CONFIG, PERMISSIONS, type Permission } from "@/lib/constants";
@@ -64,16 +59,8 @@ const NAV: NavGroup[] = [
       { label: "Products", href: "/inventory", icon: Package, permission: PERMISSIONS.VIEW_INVENTORY },
       { label: "Stock Intake", href: "/stock-entries", icon: PackagePlus, permission: PERMISSIONS.VIEW_INVENTORY },
       { label: "Bulk Intake", href: "/stock-entries/bulk", icon: ClipboardList, permission: PERMISSIONS.CREATE_INVENTORY },
-      { label: "Supplier Returns", href: "/supplier-returns", icon: Undo2, permission: PERMISSIONS.EDIT_INVENTORY },
       { label: "Categories", href: "/categories", icon: ClipboardList, permission: PERMISSIONS.VIEW_INVENTORY },
       { label: "Bulk Import", href: "/inventory/import", icon: PackagePlus, permission: PERMISSIONS.CREATE_INVENTORY },
-    ],
-  },
-  {
-    label: "Contacts",
-    items: [
-      { label: "Customers", href: "/customers", icon: Users, permission: PERMISSIONS.MANAGE_CUSTOMERS },
-      { label: "Suppliers", href: "/suppliers", icon: Truck, permission: PERMISSIONS.MANAGE_SUPPLIERS },
     ],
   },
   {

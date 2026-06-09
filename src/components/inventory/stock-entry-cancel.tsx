@@ -59,7 +59,7 @@ export function StockEntryCancel({ id, referenceNumber }: Props) {
           <DialogHeader>
             <DialogTitle>Cancel stock entry {referenceNumber}?</DialogTitle>
             <DialogDescription>
-              This will reverse the stock addition for every line item and update supplier balances.
+              This will reverse the stock addition for every line item.
               The entry will be marked as cancelled but kept for audit.
             </DialogDescription>
           </DialogHeader>
@@ -77,7 +77,7 @@ export function StockEntryCancel({ id, referenceNumber }: Props) {
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 rows={2}
-                placeholder="e.g. Wrong items delivered, supplier recall, duplicate entry…"
+                placeholder="e.g. Wrong items delivered, duplicate entry…"
                 autoFocus
               />
             </div>

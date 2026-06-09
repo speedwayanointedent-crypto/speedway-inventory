@@ -15,8 +15,6 @@ export interface ISaleItem {
 export interface ISale extends Document {
   saleNumber: string;
   publicId: string;
-  customer?: mongoose.Types.ObjectId;
-  customerName: string;
   items: ISaleItem[];
   subtotal: number;
   totalDiscount: number;
@@ -36,7 +34,6 @@ export interface ISale extends Document {
   status: SaleStatus;
   notes?: string;
   qrCodeData?: string;
-  isWholesale: boolean;
   refundedAmount: number;
   createdAt: Date;
   updatedAt: Date;
@@ -60,8 +57,6 @@ const SaleSchema = new Schema<ISale>(
   {
     saleNumber: { type: String, required: true, unique: true, index: true },
     publicId: { type: String, required: true, unique: true, index: true },
-    customer: { type: Schema.Types.ObjectId, ref: "Customer", index: true },
-    customerName: { type: String, required: true },
     items: [SaleItemSchema],
     subtotal: { type: Number, required: true, default: 0 },
     totalDiscount: { type: Number, default: 0 },
@@ -92,7 +87,6 @@ const SaleSchema = new Schema<ISale>(
     },
     notes: { type: String },
     qrCodeData: { type: String },
-    isWholesale: { type: Boolean, default: false },
     refundedAmount: { type: Number, default: 0 },
   },
   { timestamps: true }

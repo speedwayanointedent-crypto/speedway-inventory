@@ -29,7 +29,6 @@ export async function GET(req: Request) {
   const format = (url.searchParams.get("format") || "excel").toLowerCase();
   const from = url.searchParams.get("from");
   const to = url.searchParams.get("to");
-  const supplier = url.searchParams.get("supplier");
   const status = url.searchParams.get("status");
   const paymentStatus = url.searchParams.get("paymentStatus");
   const shop = url.searchParams.get("shop");
@@ -45,7 +44,6 @@ export async function GET(req: Request) {
       (filter.entryDate as Record<string, Date>).$lte = toDate;
     }
   }
-  if (supplier && supplier !== "all") filter.supplier = supplier;
   if (status && status !== "all") filter.status = status;
   if (paymentStatus && paymentStatus !== "all") filter.paymentStatus = paymentStatus;
   if (shop && shop !== "all") filter.shop = shop;
@@ -53,7 +51,6 @@ export async function GET(req: Request) {
     filter.$or = [
       { referenceNumber: { $regex: search, $options: "i" } },
       { invoiceNumber: { $regex: search, $options: "i" } },
-      { supplierName: { $regex: search, $options: "i" } },
       { "lineItems.productName": { $regex: search, $options: "i" } },
     ];
   }
@@ -70,7 +67,6 @@ export async function GET(req: Request) {
       [
         "Reference",
         "Date",
-        "Supplier",
         "Invoice",
         "Shop",
         "Status",
@@ -86,7 +82,6 @@ export async function GET(req: Request) {
       ...entries.map((e) => [
         e.referenceNumber,
         formatDate(e.entryDate, true),
-        e.supplierName || "",
         e.invoiceNumber || "",
         e.shopName || "",
         STOCK_ENTRY_STATUS_LABELS[e.status as StockEntryStatus] || e.status,
@@ -102,7 +97,7 @@ export async function GET(req: Request) {
         e.userName,
       ]),
       [],
-      ["TOTAL", "", "", "", "", "", String(entries.length), String(totalQuantity), totalCost.toFixed(2), totalPaid.toFixed(2), totalDue.toFixed(2), "", "", ""],
+      ["TOTAL", "", "", "", "", String(entries.length), String(totalQuantity), totalCost.toFixed(2), totalPaid.toFixed(2), totalDue.toFixed(2), "", "", ""],
     ];
     const csv = rows.map((r) => r.map(csvEscape).join(",")).join("\n");
     return new NextResponse(csv, {
@@ -117,7 +112,6 @@ export async function GET(req: Request) {
     const headers = [
       "Ref",
       "Date",
-      "Supplier",
       "Items",
       "Units",
       "Cost",
@@ -128,7 +122,6 @@ export async function GET(req: Request) {
     const rows = entries.map((e) => [
       e.referenceNumber,
       formatDate(e.entryDate),
-      e.supplierName || "—",
       String(e.totalItems),
       String(e.totalQuantity),
       formatCurrency(e.totalCost),
@@ -138,7 +131,6 @@ export async function GET(req: Request) {
     ]);
     rows.push([
       "TOTAL",
-      "",
       "",
       String(entries.length),
       String(totalQuantity),
@@ -165,7 +157,6 @@ export async function GET(req: Request) {
   ws.columns = [
     { header: "Reference", key: "ref", width: 20 },
     { header: "Date", key: "date", width: 18 },
-    { header: "Supplier", key: "sup", width: 22 },
     { header: "Invoice", key: "inv", width: 16 },
     { header: "Shop", key: "shop", width: 18 },
     { header: "Status", key: "st", width: 12 },
@@ -184,7 +175,6 @@ export async function GET(req: Request) {
     ws.addRow({
       ref: e.referenceNumber,
       date: formatDate(e.entryDate, true),
-      sup: e.supplierName || "",
       inv: e.invoiceNumber || "",
       shop: e.shopName || "",
       st: STOCK_ENTRY_STATUS_LABELS[e.status as StockEntryStatus] || e.status,

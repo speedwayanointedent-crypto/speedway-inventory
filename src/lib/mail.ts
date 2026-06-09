@@ -134,11 +134,10 @@ export const emailTemplates = {
       "Reset your password"
     ),
 
-  receipt: (data: { saleNumber: string; customerName: string; total: number; date: string; url: string }) =>
+  receipt: (data: { saleNumber: string; total: number; date: string; url: string }) =>
     baseTemplate(
       `
       <h2 style="margin:0 0 16px;font-size:20px;">Thank you for your purchase!</h2>
-      <p>Hi ${data.customerName},</p>
       <p>Here is your receipt from ${APP_CONFIG.name}.</p>
       <div style="background:#f3f4f6;border-radius:8px;padding:16px;margin:16px 0;">
         <p style="margin:0 0 6px;"><strong>Receipt #:</strong> ${data.saleNumber}</p>

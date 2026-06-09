@@ -27,7 +27,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -49,11 +48,6 @@ interface ParsedRow {
   unitCost?: string;
 }
 
-interface SupplierOption {
-  _id: string;
-  companyName: string;
-}
-
 interface ShopOption {
   _id: string;
   name: string;
@@ -61,17 +55,15 @@ interface ShopOption {
 }
 
 interface Props {
-  suppliers: SupplierOption[];
   shops: ShopOption[];
 }
 
-export function BulkStockEntryForm({ suppliers, shops }: Props) {
+export function BulkStockEntryForm({ shops }: Props) {
   const router = useRouter();
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [errors, setErrors] = useState<{ row: number; reason: string }[]>([]);
   const [pending, startTransition] = useTransition();
   const [stats, setStats] = useState<{ ok: number; ref: string; id: string } | null>(null);
-  const [supplier, setSupplier] = useState("");
   const [shop, setShop] = useState("");
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [entryDate, setEntryDate] = useState(
@@ -148,7 +140,6 @@ export function BulkStockEntryForm({ suppliers, shops }: Props) {
     startTransition(async () => {
       try {
         const res = await bulkCreateStockEntry({
-          supplier: supplier || undefined,
           shop: shop || undefined,
           invoiceNumber: invoiceNumber || undefined,
           entryDate,
@@ -199,22 +190,6 @@ export function BulkStockEntryForm({ suppliers, shops }: Props) {
         <CardContent className="p-4 sm:p-5 space-y-4">
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             <div>
-              <Label>Supplier</Label>
-              <Select value={supplier || "none"} onValueChange={(v) => setSupplier(v === "none" ? "" : v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select supplier" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">— Unspecified —</SelectItem>
-                  {suppliers.map((s) => (
-                    <SelectItem key={s._id} value={s._id}>
-                      {s.companyName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
               <Label>Shop</Label>
               <Select value={shop || "default"} onValueChange={(v) => setShop(v === "default" ? "" : v)}>
                 <SelectTrigger>
@@ -239,7 +214,7 @@ export function BulkStockEntryForm({ suppliers, shops }: Props) {
               <Input
                 value={invoiceNumber}
                 onChange={(e) => setInvoiceNumber(e.target.value)}
-                placeholder="Supplier invoice or PO"
+                placeholder="Invoice or PO number"
               />
             </div>
             <div>

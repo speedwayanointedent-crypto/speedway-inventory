@@ -16,7 +16,6 @@ interface DailyDatum {
   entries: number;
   quantity: number;
   cost: number;
-  suppliers: number;
 }
 
 interface Props {

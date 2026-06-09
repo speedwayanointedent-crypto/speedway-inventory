@@ -9,7 +9,6 @@ import {
   Tag,
   Building2,
   MapPin,
-  Truck,
   Car,
   ShoppingBag,
   Calendar,
@@ -41,7 +40,6 @@ export default async function ProductDetailPage({ params }: Props) {
   const effectiveQty = getEffectiveQuantity(product as { orientation?: string; quantity: number; quantityLeft?: number; quantityRight?: number });
   const status = getStockStatus(effectiveQty, product.reorderLevel as number);
   const category = product.category as { name?: string } | undefined;
-  const supplier = product.supplier as { companyName?: string } | undefined;
   const shop = product.shop as { name?: string; code?: string; city?: string; address?: string } | undefined;
   const images = (product.images as string[] | undefined) || [];
   const productStatus = String(product.status || "ACTIVE");
@@ -187,9 +185,6 @@ export default async function ProductDetailPage({ params }: Props) {
                   label="Storage location"
                   value={String(product.storageLocation)}
                 />
-              )}
-              {supplier?.companyName && (
-                <DetailField icon={Truck} label="Supplier" value={supplier.companyName} />
               )}
               {Array.isArray(product.vehicleCompatibility) &&
                 (product.vehicleCompatibility as string[]).length > 0 && (

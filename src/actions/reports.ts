@@ -4,11 +4,9 @@ import { connectDB } from "@/lib/db";
 import {
   Sale,
   Product,
-  Customer,
   Notification,
   ActivityLog,
   StockEntry,
-  SupplierReturn,
 } from "@/models";
 import { requireAuth } from "@/lib/session";
 import { safeJSON } from "@/lib/utils";
@@ -74,16 +72,10 @@ export async function getDashboardMetrics() {
     .select("name totalSold quantity price")
     .lean();
 
-  const topCustomers = await Customer.find({ isActive: true })
-    .sort({ totalSpending: -1 })
-    .limit(5)
-    .select("name totalSpending lastPurchaseDate")
-    .lean();
-
   const recentTransactions = await Sale.find()
     .sort({ createdAt: -1 })
     .limit(8)
-    .select("saleNumber customerName total status createdAt paymentMethod")
+    .select("saleNumber total status createdAt paymentMethod")
     .lean();
 
   const salesTrend = await Sale.aggregate([
@@ -167,7 +159,7 @@ export async function getDashboardMetrics() {
       StockEntry.find({ status: { $ne: "CANCELLED" } })
         .sort({ entryDate: -1 })
         .limit(5)
-        .select("referenceNumber supplierName totalQuantity totalCost status entryDate")
+        .select("referenceNumber totalQuantity totalCost status entryDate")
         .lean(),
       StockEntry.aggregate([
         {
@@ -179,38 +171,6 @@ export async function getDashboardMetrics() {
         { $group: { _id: null, total: { $sum: "$amountDue" } } },
       ]),
     ]);
-
-  const aggregateReturns = (from: Date) =>
-    SupplierReturn.aggregate([
-      {
-        $match: {
-          returnDate: { $gte: from },
-          status: { $ne: "CANCELLED" },
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          returns: { $sum: 1 },
-          quantity: { $sum: "$totalQuantity" },
-          value: { $sum: "$totalValue" },
-        },
-      },
-    ]);
-
-  const [returnsMonth, returnsPending, returnsValueAllTime, recentReturns] = await Promise.all([
-    aggregateReturns(startOfMonth),
-    SupplierReturn.countDocuments({ status: "PENDING" }),
-    SupplierReturn.aggregate([
-      { $match: { status: { $ne: "CANCELLED" } } },
-      { $group: { _id: null, total: { $sum: "$totalValue" } } },
-    ]),
-    SupplierReturn.find({ status: { $ne: "CANCELLED" } })
-      .sort({ returnDate: -1, createdAt: -1 })
-      .limit(5)
-      .select("referenceNumber supplierName totalQuantity totalValue status returnDate")
-      .lean(),
-  ]);
 
   return {
     sales: {
@@ -232,14 +192,7 @@ export async function getDashboardMetrics() {
       outstanding: stockOutstanding[0]?.total || 0,
       recent: safeJSON<unknown[]>(recentStockEntries),
     },
-    supplierReturns: {
-      month: returnsMonth[0] || { returns: 0, quantity: 0, value: 0 },
-      pending: returnsPending,
-      valueAllTime: returnsValueAllTime[0]?.total || 0,
-      recent: safeJSON<unknown[]>(recentReturns),
-    },
     topProducts: safeJSON<unknown[]>(topProducts),
-    topCustomers: safeJSON<unknown[]>(topCustomers),
     recentTransactions: safeJSON<unknown[]>(recentTransactions),
     salesTrend: salesTrend.map((d) => ({ date: d._id, total: d.total, count: d.count })),
     notifications: safeJSON<unknown[]>(recentNotifications),

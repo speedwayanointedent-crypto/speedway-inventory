@@ -34,8 +34,7 @@ export const PERMISSIONS = {
   DELETE_INVENTORY: "DELETE_INVENTORY",
   CREATE_SALES: "CREATE_SALES",
   VIEW_REPORTS: "VIEW_REPORTS",
-  MANAGE_CUSTOMERS: "MANAGE_CUSTOMERS",
-  MANAGE_SUPPLIERS: "MANAGE_SUPPLIERS",
+
   GENERATE_RECEIPTS: "GENERATE_RECEIPTS",
   PROCESS_RETURNS: "PROCESS_RETURNS",
   MANAGE_USERS: "MANAGE_USERS",
@@ -50,7 +49,6 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   STAFF: [
     PERMISSIONS.VIEW_INVENTORY,
     PERMISSIONS.CREATE_SALES,
-    PERMISSIONS.MANAGE_CUSTOMERS,
     PERMISSIONS.GENERATE_RECEIPTS,
     PERMISSIONS.VIEW_REPORTS,
   ],
@@ -89,7 +87,7 @@ export const NOTIFICATION_TYPES = [
   "RETURN_CREATED",
   "INVENTORY_ADDED",
   "STOCK_RECEIVED",
-  "SUPPLIER_PAYMENT_DUE",
+
   "REORDER_ALERT",
   "STILL_LOW_AFTER_INTAKE",
   "SYSTEM_ALERT",
@@ -125,57 +123,4 @@ export const STOCK_ENTRY_STATUS_LABELS: Record<StockEntryStatus, string> = {
   CANCELLED: "Cancelled",
 };
 
-export const SUPPLIER_RETURN_STATUS = [
-  "PENDING",
-  "APPROVED",
-  "IN_TRANSIT",
-  "COMPLETED",
-  "REJECTED",
-  "CANCELLED",
-] as const;
-export type SupplierReturnStatus = (typeof SUPPLIER_RETURN_STATUS)[number];
 
-export const SUPPLIER_RETURN_STATUS_LABELS: Record<SupplierReturnStatus, string> = {
-  PENDING: "Pending Approval",
-  APPROVED: "Approved",
-  IN_TRANSIT: "In Transit",
-  COMPLETED: "Completed",
-  REJECTED: "Rejected",
-  CANCELLED: "Cancelled",
-};
-
-export const SUPPLIER_RETURN_REASONS = [
-  "DEFECTIVE",
-  "WRONG_ITEM",
-  "OVERSTOCK",
-  "QUALITY_ISSUE",
-  "DAMAGED_IN_TRANSIT",
-  "EXPIRED",
-  "OTHER",
-] as const;
-export type SupplierReturnReason = (typeof SUPPLIER_RETURN_REASONS)[number];
-
-export const SUPPLIER_RETURN_REASON_LABELS: Record<SupplierReturnReason, string> = {
-  DEFECTIVE: "Defective / Faulty",
-  WRONG_ITEM: "Wrong Item Delivered",
-  OVERSTOCK: "Overstocked",
-  QUALITY_ISSUE: "Quality Issue",
-  DAMAGED_IN_TRANSIT: "Damaged in Transit",
-  EXPIRED: "Expired",
-  OTHER: "Other",
-};
-
-export const SUPPLIER_RETURN_RESOLUTION = [
-  "REFUND",
-  "REPLACEMENT",
-  "CREDIT_NOTE",
-  "PENDING",
-] as const;
-export type SupplierReturnResolution = (typeof SUPPLIER_RETURN_RESOLUTION)[number];
-
-export const SUPPLIER_RETURN_RESOLUTION_LABELS: Record<SupplierReturnResolution, string> = {
-  REFUND: "Refund",
-  REPLACEMENT: "Replacement",
-  CREDIT_NOTE: "Credit Note",
-  PENDING: "Pending Decision",
-};

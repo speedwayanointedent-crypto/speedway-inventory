@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Save, Store, MapPin, Plus } from "lucide-react";
+import { Save, Store, Plus } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,7 +34,6 @@ interface ShopOpt {
 interface Props {
   product?: ProductInput & { _id?: string };
   categories: Array<{ _id: string; name: string }>;
-  suppliers: Array<{ _id: string; companyName: string }>;
   shops: ShopOpt[];
   canManageShops?: boolean;
 }
@@ -42,7 +41,6 @@ interface Props {
 export function ProductForm({
   product,
   categories,
-  suppliers,
   shops,
   canManageShops,
 }: Props) {
@@ -72,7 +70,6 @@ export function ProductForm({
       quantityLeft: 0,
       quantityRight: 0,
       reorderLevel: 10,
-      supplier: "",
       images: [],
       shop: defaultShopId,
       storageLocation: "",
@@ -258,7 +255,7 @@ export function ProductForm({
       <Card>
         <CardContent className="p-6 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold">Shop & Supplier</h3>
+            <h3 className="text-sm font-semibold">Shop</h3>
             {canManageShops && (
               <Button asChild variant="ghost" size="sm">
                 <Link href="/admin/shops/new">
@@ -291,25 +288,6 @@ export function ProductForm({
               {errors.shop && (
                 <p className="text-xs text-destructive mt-1">{errors.shop.message}</p>
               )}
-            </div>
-
-            <div>
-              <Label>Supplier</Label>
-              <Select
-                value={watch("supplier") || ""}
-                onValueChange={(v) => setValue("supplier", v)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select supplier" />
-                </SelectTrigger>
-                <SelectContent>
-                  {suppliers.map((s) => (
-                    <SelectItem key={s._id} value={s._id}>
-                      {s.companyName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
 
             <div className="md:col-span-2">

@@ -43,7 +43,6 @@ export default async function ReturnsPage({
               <TableRow>
                 <TableHead>Return #</TableHead>
                 <TableHead>Sale</TableHead>
-                <TableHead>Customer</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
                 <TableHead>Reason</TableHead>
@@ -55,7 +54,6 @@ export default async function ReturnsPage({
                 _id: string;
                 returnNumber: string;
                 saleNumber: string;
-                customerName: string;
                 type: string;
                 totalAmount: number;
                 reason: string;
@@ -64,7 +62,6 @@ export default async function ReturnsPage({
                 <TableRow key={r._id}>
                   <TableCell className="text-sm font-mono font-medium">{r.returnNumber}</TableCell>
                   <TableCell className="text-sm">{r.saleNumber}</TableCell>
-                  <TableCell className="text-sm">{r.customerName}</TableCell>
                   <TableCell>
                     <Badge variant={r.type === "FULL" ? "destructive" : "warning"}>
                       {r.type}

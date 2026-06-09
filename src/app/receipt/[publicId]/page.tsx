@@ -73,7 +73,6 @@ export default async function ReceiptPage({ params }: Props) {
             <div className="space-y-1.5 text-sm">
               <Row label="Receipt #" value={sale.saleNumber as string} />
               <Row label="Date" value={formatDate(sale.createdAt as string, true)} />
-              <Row label="Customer" value={sale.customerName as string} />
               <Row label="Cashier" value={sale.staffName as string} />
               <Row
                 label="Payment"

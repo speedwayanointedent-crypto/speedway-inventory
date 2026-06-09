@@ -5,7 +5,6 @@ import {
   BarChart3,
   TrendingUp,
   Package,
-  Truck,
   Wallet,
   Calendar,
   AlertTriangle,
@@ -188,48 +187,7 @@ export default async function StockIntakeReportPage({ searchParams }: Props) {
         </Card>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-4">
-        <Card className="overflow-hidden">
-          <CardHeader>
-            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-              <Truck className="h-4 w-4" /> By supplier
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Top suppliers by intake value
-            </CardDescription>
-          </CardHeader>
-          {data.suppliers.length === 0 ? (
-            <CardContent>
-              <p className="text-sm text-muted-foreground text-center py-6">No data</p>
-            </CardContent>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Supplier</TableHead>
-                  <TableHead className="text-center">Intakes</TableHead>
-                  <TableHead className="text-center">Units</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.suppliers.slice(0, 10).map((s) => (
-                  <TableRow key={s.supplierId || s.supplierName}>
-                    <TableCell className="text-sm font-medium">{s.supplierName}</TableCell>
-                    <TableCell className="text-center text-sm">{s.entries}</TableCell>
-                    <TableCell className="text-center text-sm text-emerald-600">
-                      +{s.quantity}
-                    </TableCell>
-                    <TableCell className="text-right font-semibold">
-                      {formatCurrency(s.cost)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </Card>
-
+      <div className="grid lg:grid-cols-1 gap-4">
         <Card className="overflow-hidden">
           <CardHeader>
             <CardTitle className="text-base sm:text-lg flex items-center gap-2">
