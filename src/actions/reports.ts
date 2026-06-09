@@ -72,6 +72,15 @@ export async function getDashboardMetrics() {
     .select("name totalSold quantity price")
     .lean();
 
+  const bottomProducts = await Product.find({
+    status: "ACTIVE",
+    totalSold: { $gt: 0 },
+  })
+    .sort({ totalSold: 1 })
+    .limit(5)
+    .select("name totalSold quantity price")
+    .lean();
+
   const recentTransactions = await Sale.find()
     .sort({ createdAt: -1 })
     .limit(8)
@@ -193,6 +202,7 @@ export async function getDashboardMetrics() {
       recent: safeJSON<unknown[]>(recentStockEntries),
     },
     topProducts: safeJSON<unknown[]>(topProducts),
+    bottomProducts: safeJSON<unknown[]>(bottomProducts),
     recentTransactions: safeJSON<unknown[]>(recentTransactions),
     salesTrend: salesTrend.map((d) => ({ date: d._id, total: d.total, count: d.count })),
     notifications: safeJSON<unknown[]>(recentNotifications),

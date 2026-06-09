@@ -294,6 +294,53 @@ export default async function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <div>
+              <CardTitle className="text-base sm:text-lg">Low Sales</CardTitle>
+              <CardDescription className="text-xs">Least sold products</CardDescription>
+            </div>
+            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+              <Link href="/inventory">
+                View <ArrowUpRight className="h-3 w-3" />
+              </Link>
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-2.5">
+            {(data.bottomProducts as Array<{
+              _id: string;
+              name: string;
+              totalSold: number;
+              quantity: number;
+              price: number;
+            }>).length === 0 && (
+              <p className="text-sm text-muted-foreground py-6 text-center">No sales yet</p>
+            )}
+            {(data.bottomProducts as Array<{
+              _id: string;
+              name: string;
+              totalSold: number;
+              quantity: number;
+              price: number;
+            }>).map((p, i) => (
+              <div key={p._id} className="flex items-center justify-between gap-3 p-2 -mx-2 rounded-lg hover:bg-muted/40 transition-colors">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-rose-500/15 to-orange-500/10 text-rose-600 text-[11px] font-bold flex items-center justify-center shrink-0">
+                    {i + 1}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{truncate(p.name, 28)}</p>
+                    <p className="text-[11px] text-muted-foreground">{p.totalSold} sold</p>
+                  </div>
+                </div>
+                <Badge variant="outline" className="shrink-0 text-[10px]">
+                  {formatCurrency(p.price)}
+                </Badge>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-base sm:text-lg flex items-center gap-2">
               <ReceiptIcon className="h-4 w-4" /> Recent Sales
             </CardTitle>
