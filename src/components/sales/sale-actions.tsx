@@ -91,7 +91,7 @@ export function SaleActions({ id }: { id: string }) {
             <Textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Customer returned item, defective product..."
+              placeholder="Defective product, wrong item..."
               rows={3}
             />
           </div>

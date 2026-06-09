@@ -23,7 +23,6 @@ const NotificationSchema = new Schema<INotification>(
         "RETURN_CREATED",
         "INVENTORY_ADDED",
         "STOCK_RECEIVED",
-        "SUPPLIER_PAYMENT_DUE",
         "REORDER_ALERT",
         "STILL_LOW_AFTER_INTAKE",
         "SYSTEM_ALERT",

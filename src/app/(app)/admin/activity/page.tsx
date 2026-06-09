@@ -14,7 +14,7 @@ import Link from "next/link";
 
 export const metadata: Metadata = { title: "Activity Log" };
 
-const MODULES = ["all", "AUTH", "INVENTORY", "SALES", "CUSTOMER", "SUPPLIER", "USERS", "SETTINGS", "RETURNS"];
+const MODULES = ["all", "AUTH", "INVENTORY", "SALES", "USERS", "SETTINGS", "RETURNS"];
 
 export default async function ActivityPage({
   searchParams,

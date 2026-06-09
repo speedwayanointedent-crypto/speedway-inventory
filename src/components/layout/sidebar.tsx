@@ -20,6 +20,8 @@ import {
   Activity,
   Store,
   Sparkles,
+  RotateCcw,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_CONFIG, PERMISSIONS, type Permission } from "@/lib/constants";

@@ -288,7 +288,7 @@ export function StockEntryForm({
               <div>
                 <h2 className="text-sm font-semibold">Products received</h2>
                 <p className="text-xs text-muted-foreground">
-                  Add every item on the supplier&apos;s delivery note
+                  Add every item received
                 </p>
               </div>
             </div>

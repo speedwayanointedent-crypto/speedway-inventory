@@ -189,7 +189,7 @@ export function SettingsForm({ settings }: SettingsFormProps) {
             onChange={(v) => update("enableLowStockAlerts", v)}
           />
           <ToggleRow
-            label="Email receipts to customers"
+            label="Email digital receipts"
             description="Automatically email a receipt link on every sale."
             checked={form.enableEmailReceipts}
             onChange={(v) => update("enableEmailReceipts", v)}

@@ -3,7 +3,6 @@
 import {
   Package,
   ShoppingCart,
-  Users,
   Truck,
   BarChart3,
   Bell,
@@ -54,14 +53,6 @@ const FEATURES: Feature[] = [
       "Sales, profit, inventory turnover, and staff performance — export to PDF, Excel, or CSV in one click.",
     category: "Analytics",
     accent: "from-amber-500 to-orange-500",
-  },
-  {
-    icon: Users,
-    title: "Customers & suppliers",
-    description:
-      "Wholesale price tiers, contact history, and a single record per party for every transaction you make.",
-    category: "Relationships",
-    accent: "from-pink-500 to-rose-500",
   },
   {
     icon: Truck,

@@ -119,7 +119,7 @@ export default function NewUserPage() {
               <p className="text-xs text-muted-foreground">
                 {form.role === ROLES.ADMIN
                   ? "Full access to every module."
-                  : "Limited access (POS, customers, view inventory/reports)."}
+                  : "Limited access (POS, view inventory/reports)."}
               </p>
             </div>
             <div className="flex items-center justify-between p-3 rounded-md border">

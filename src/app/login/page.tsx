@@ -55,7 +55,7 @@ export default async function LoginPage() {
             </span>
           </h1>
           <p className="text-blue-100 text-lg leading-relaxed">
-            Track inventory, process sales, manage customers, and generate professional receipts —
+            Track inventory, process sales, and generate professional receipts —
             all from one beautifully crafted dashboard.
           </p>
           <div className="grid grid-cols-3 gap-3 pt-4">
