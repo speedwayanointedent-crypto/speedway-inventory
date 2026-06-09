@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -44,6 +45,7 @@ interface Product {
   quantityLeft?: number;
   quantityRight?: number;
   orientation?: string;
+  images?: string[];
 }
 
 interface CartItem {
@@ -82,6 +84,7 @@ export function POSClient({ taxRate }: { taxRate: number }) {
   const [discountPct, setDiscountPct] = React.useState(0);
   const [enableTax, setEnableTax] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
+  const [cartOpen, setCartOpen] = React.useState(false);
 
   const searchRef = React.useRef<HTMLInputElement>(null);
 
@@ -230,7 +233,20 @@ export function POSClient({ taxRate }: { taxRate: number }) {
               autoFocus
             />
           </div>
-
+          <Button
+            size="icon"
+            variant="outline"
+            className="lg:hidden h-11 w-11 shrink-0 relative"
+            onClick={() => setCartOpen(true)}
+            aria-label="Open cart"
+          >
+            <ShoppingCart className="h-5 w-5" />
+            {cartCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground shadow">
+                {cartCount}
+              </span>
+            )}
+          </Button>
         </div>
 
         <Card>
@@ -256,8 +272,12 @@ export function POSClient({ taxRate }: { taxRate: number }) {
                     disabled={avail <= 0}
                     className="text-left rounded-md border bg-card hover:bg-accent hover:border-primary transition p-3 disabled:opacity-50 disabled:cursor-not-allowed group"
                   >
-                    <div className="aspect-square rounded bg-muted/40 mb-2 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                      <Receipt className="h-8 w-8 text-muted-foreground group-hover:text-primary" />
+                    <div className="aspect-square rounded bg-muted/40 mb-2 flex items-center justify-center group-hover:bg-primary/10 transition-colors overflow-hidden relative">
+                      {p.images?.[0] ? (
+                        <Image src={p.images[0]} alt={p.name} fill className="object-cover" sizes="200px" />
+                      ) : (
+                        <Receipt className="h-8 w-8 text-muted-foreground group-hover:text-primary" />
+                      )}
                     </div>
                     <p className="text-xs font-semibold leading-tight truncate" title={p.name}>
                       {truncate(p.name, 32)}
@@ -282,7 +302,7 @@ export function POSClient({ taxRate }: { taxRate: number }) {
         </Card>
       </div>
 
-      <div className="flex flex-col h-[calc(100vh-7rem)] sticky top-20">
+      <div className="hidden lg:flex flex-col h-[calc(100vh-7rem)] sticky top-20">
         <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
           <div className="p-3 sm:p-4 border-b flex items-center justify-between">
             <h2 className="text-sm font-semibold flex items-center gap-2">
@@ -412,6 +432,131 @@ export function POSClient({ taxRate }: { taxRate: number }) {
           </div>
         </Card>
       </div>
+
+      <Dialog open={cartOpen} onOpenChange={setCartOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShoppingCart className="h-4 w-4" />
+              Cart
+              {cartCount > 0 && (
+                <Badge variant="secondary" className="text-[10px] ml-1">
+                  {cartCount} {cartCount === 1 ? "item" : "items"}
+                </Badge>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="flex-1 min-h-0 -mx-6 px-6">
+            {cart.length === 0 ? (
+              <div className="py-12 text-center">
+                <ShoppingCart className="h-10 w-10 text-muted-foreground/50 mx-auto mb-2" />
+                <p className="text-xs text-muted-foreground">Cart is empty</p>
+              </div>
+            ) : (
+              <div className="space-y-2 pb-4">
+                {cart.map((i) => (
+                  <div key={i.product} className="border rounded-md p-2 space-y-1.5 hover:border-border/80 transition">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold truncate">{i.productName}</p>
+                        <p className="text-[10px] text-muted-foreground">{i.productCode}</p>
+                      </div>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6 -mt-1"
+                        onClick={() => removeItem(i.product)}
+                        aria-label="Remove item"
+                      >
+                        <Trash2 className="h-3 w-3 text-destructive" />
+                      </Button>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1">
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          className="h-7 w-7"
+                          onClick={() => updateQty(i.product, -1)}
+                          aria-label="Decrease quantity"
+                        >
+                          <Minus className="h-3 w-3" />
+                        </Button>
+                        <span className="text-xs font-bold w-7 text-center">{i.quantity}</span>
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          className="h-7 w-7"
+                          onClick={() => updateQty(i.product, 1)}
+                          aria-label="Increase quantity"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={i.unitPrice}
+                        onChange={(e) => updatePrice(i.product, parseFloat(e.target.value) || 0)}
+                        className="h-7 w-20 text-xs text-right"
+                      />
+                      <span className="text-xs font-bold w-20 text-right">
+                        {formatCurrency(i.unitPrice * i.quantity)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+          <div className="border-t pt-3 space-y-2 text-xs">
+            <div className="flex items-center justify-between gap-2">
+              <Label className="text-xs flex items-center gap-1">
+                <Percent className="h-3 w-3" /> Discount %
+              </Label>
+              <Input
+                type="number"
+                value={discountPct}
+                onChange={(e) => setDiscountPct(parseFloat(e.target.value) || 0)}
+                className="h-7 w-16 text-xs"
+                min={0}
+                max={100}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs cursor-pointer flex items-center gap-2">
+                <Switch id="tax-mobile" checked={enableTax} onCheckedChange={setEnableTax} />
+                Apply Tax ({(taxRate * 100).toFixed(1)}%)
+              </Label>
+            </div>
+            <div className="flex justify-between text-muted-foreground">
+              <span>Subtotal</span>
+              <span>{formatCurrency(subtotal)}</span>
+            </div>
+            <div className="flex justify-between text-muted-foreground">
+              <span>Discount</span>
+              <span>-{formatCurrency(totalDiscount)}</span>
+            </div>
+            {enableTax && (
+              <div className="flex justify-between text-muted-foreground">
+                <span>Tax</span>
+                <span>{formatCurrency(taxAmount)}</span>
+              </div>
+            )}
+            <div className="flex justify-between text-base font-bold pt-2 border-t">
+              <span>Total</span>
+              <span className="text-primary">{formatCurrency(total)}</span>
+            </div>
+            <Button
+              className="w-full h-11 shadow-lg shadow-primary/20"
+              size="lg"
+              onClick={() => { setCartOpen(false); openPayment(); }}
+            >
+              <CheckCircle2 className="h-4 w-4" /> Charge {formatCurrency(total)}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={payOpen} onOpenChange={setPayOpen}>
         <DialogContent className="max-w-md">
