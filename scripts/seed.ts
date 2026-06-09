@@ -249,7 +249,7 @@ async function main() {
       const bin = Math.floor(Math.random() * 8) + 1;
 
       const orientation = p.orientation ?? (idx % 5 === 0 ? "LEFT_RIGHT" : "SINGLE");
-      const images: string[] = [];
+      const images = [`https://placehold.co/400x400/1e3a5f/ffffff?text=${encodeURIComponent(p.name.split(" ").slice(0, 2).join("+"))}`];
 
       const quantityLeft =
         orientation === "LEFT_RIGHT"
